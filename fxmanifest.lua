@@ -1,11 +1,13 @@
-fx_version 'bodacious'
+fx_version 'cerulean'
 game 'gta5'
 
 author 'BryaN'
 
 shared_script 'config.lua'
-client_script 'client.lua'
+client_scripts {
+    'client/*.lua'
+}
 server_scripts {
-    '@mysql-async/lib/MySQL.lua',
-    'server.lua'
+    '@oxmysql/lib/MySQL.lua',
+    'server/*.lua'
 }
