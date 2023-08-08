@@ -86,12 +86,12 @@ StartMarkers = function()
         end
 
         if Config.Markers.Enable and isNear then
-            wait = 5
+            wait = 1
             DrawMarker(Config.Markers[type].Type, pos, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Config.Markers[type].Scale.x, Config.Markers[type].Scale.y, Config.Markers[type].Scale.z, Config.Markers[type].Colour.r, Config.Markers[type].Colour.g, Config.Markers[type].Colour.b, Config.Markers[type].Colour.a, false, false, 2, Config.Markers[type].Rotate, nil, nil, false)
         end
 
         if isNear and not isMenuOpened and GetDistanceBetweenCoords(coords, pos, true) <= Config.Markers[type].Scale.x and not isSettingUp then
-            wait = 5
+            wait = 1
             ESX.ShowHelpNotification(Config.Strings[type])
 
             if IsControlJustPressed(1, 51) then
