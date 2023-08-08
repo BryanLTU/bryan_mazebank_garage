@@ -107,7 +107,51 @@ StartMarkers = function()
 end
 
 PressedControl = function(type)
-    isMenuOpened = true
+    local options = {}
+
+    if type == 'Enter' then
+        local doesOwnGarage = lib.callback.await('bryan_mazebank_garage:server:doesOwnGarage', false)
+
+        if doesOwnGarage then
+            table.insert(options, {
+                title = _U('menu_enter_garage'),
+                onSelect = function()
+
+                end
+            })
+        else
+            table.insert(options, {
+                title = _U('menu_enter_purchase'),
+                description = _U('price', Config.Price),
+                onSelect = function()
+
+                end
+            })
+        end
+
+        table.insert(options, {
+            title = _U('menu_enter_visit'),
+            description = _U('menu_enter_visit_desc'),
+            onSelect = function()
+                local input = lib.inputDialog(_U('menu_visit_title'), { _U('id') })
+
+                if not tonumber(input[1]) then return end
+
+                TriggerServerEvent('bryan_mazebank_garage:server:requestToEnter', tonumber(input[1]))
+            end
+        })
+    end
+
+    lib.registerContext({
+        id = 'bryan_garage_enter',
+        title = _U('menu_enter_title'),
+        options = {
+            {
+                title = _U('menu_enter_purchase'),
+                description = _U('price', Config.Price)
+            }
+        }
+    })
 
     if type == 'Enter' then
         if hasGarage then
