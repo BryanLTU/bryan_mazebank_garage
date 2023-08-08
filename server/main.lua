@@ -259,6 +259,40 @@ ESX.RegisterServerCallback('bryan_mazebank_garage:checkOwnerShip', function(sour
     cb(doesOwn)
 end)
 
+lib.callback.register('bryan_mazebank_garage:server:doesOwnGarage', function(source)
+    local result = MySQL.Scalar.await('SELECT identifier FROM bryan_garage_owners WHERE identifier = ?', { _GetPlayerIdentifier(source) })
+
+    return result ~= nil
+end)
+
+-- TODO Replace garage instances from identifiers to sources
+RegisterNetEvent('bryan_mazebank_garage:server:requestToEnter', function(id)
+    if not DoesGrarageInstanceExist(id) then
+        -- TODO Notification
+        return false
+    end
+
+    local _source = source
+    local xPlayer = _GetPlayerFromId(_source)
+    local xTarget = _GetPlayerFromId(id)
+
+    if xPlayer and xTarget then
+        TriggerClientEvent('bryan_mazebank_garage:insertRequest', id, _GetPlayerName(_source), xPlayer.getIdentifier())
+        _Notification(_source, _U('notification_invite_requested', id))
+        _Notification(id, _U('notification_invite_request'))
+    end
+end)
+
+DoesGrarageInstanceExist = function(id)
+    for k, v in ipairs(garageInstances) do
+        if v.id == id then
+            return true
+        end
+    end
+
+    return false
+end
+
 GetInWhatGarage = function(source)
     for k, v in pairs(playerInstances) do
         for l, b in pairs(v) do
