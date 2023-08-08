@@ -1,10 +1,5 @@
-ESX = nil
 local garageInstances = {}
 local playerInstances = {}
-
-if not Config.DebugMode then
-    TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
-end
 
 RegisterNetEvent('bryan_mazebank_garage:updatePlayerVisibility', function(value, identifier, floor)
     local _source = source

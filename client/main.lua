@@ -1,4 +1,3 @@
-ESX = nil
 local hasGarage, currFloor = false, 0
 local isMenuOpened, isSettingUp = false, false
 local blip, garage, requests, requested = nil, {}, {}, {}
@@ -6,11 +5,6 @@ local currPlayers = {}
 
 Citizen.CreateThread(function()
     if not Config.DebugMode then
-        while ESX == nil do
-            TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
-            Citizen.Wait(100)
-        end
-
         while ESX.GetPlayerData().job == nil do
             Citizen.Wait(100)
         end
