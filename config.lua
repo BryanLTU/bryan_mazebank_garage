@@ -1,0 +1,119 @@
+Config = {}
+
+Config.DebugMode = false
+
+Config.Price     = 15000
+Config.MaxFloors = 3
+Config.CheckOwnership = false
+
+Config.Locations = {
+    Enter            = vector4(-70.87, -799.26, 43.32, 181.40),
+    EnterVh          = vector4(-84.11, -821.25, 35.13, 351.15),
+    Exit             = vector4(-88.79834, -822.3201, 221.1, -147.027237),
+
+    VehicleLocations = {
+        [1] = vector4(-85.24082,      -818.235535,    220.23494,  -144.433289),
+        [2] = vector4(-76.9321747,    -819.9362,      220.234451, 176.218323),
+        [3] = vector4(-71.09352,      -822.318542,    220.234543, 140.8338),
+        [4] = vector4(-67.9834747,    -828.685547,    220.234467, 94.56514),
+        [5] = vector4(-70.25896,      -836.0581,      220.234222, 45.08332),
+        [6] = vector4(-84.3974152,    -819.8488,      225.672928, -148.987808),
+        [7] = vector4(-76.77495,      -819.621033,    225.672867, 171.160126),
+        [8] = vector4(-71.1063461,    -823.0381,      225.672928, 136.971),
+        [9] = vector4(-67.4827652,    -828.406433,    225.672943, 92.51076),
+        [10] = vector4(-70.124855,     -835.7496,      225.673065, 49.92409),
+        [11] = vector4(-85.98553,      -820.654846,    231.018417, -142.9082),
+        [12] = vector4(-77.21592,      -820.092957,    231.018982, 178.564911),
+        [13] = vector4(-71.42833,      -822.0914,      231.018478, 133.955643),
+        [14] = vector4(-68.0297,       -828.6458,      231.018784, 88.1085358),
+        [15] = vector4(-70.2125,       -835.0709,      231.0186,   48.27413),
+    }
+}
+
+Config.Blips = {
+    Enable = true,
+
+    ['ForSale'] = {
+        Sprite = 369,
+        Colour = 47,
+        Scale = 0.8,
+        Text = 'Maze Bank Garage'
+    },
+    ['Owned'] = {
+        Sprite = 50,
+        Colour = 2,
+        Scale = 0.8,
+        Text = '~o~Maze Bank Garage'
+    }
+}
+
+Config.Markers = {
+    Enable = true,
+
+    ['Enter'] = {
+        Type = 1,
+        Scale = { x = 1.0, y = 1.0, z = 1.0 },
+        Colour = { r = 0, g = 255, b = 255, a = 255 },
+        Rotate = true
+    },
+    ['EnterVh'] = {
+        Type = 1,
+        Scale = { x = 4.0, y = 4.0, z = 1.0 },
+        Colour = { r = 0, g = 255, b = 255, a = 255 },
+        Rotate = true
+    },
+    ['Exit'] = {
+        Type = 1,
+        Scale = { x = 1.0, y = 1.0, z = 1.0 },
+        Colour = { r = 255, g = 0, b = 0, a = 255 },
+        Rotate = true
+    }
+}
+
+Config.Menus = {
+    Align = 'right'
+}
+
+Config.Strings = {
+    ['Enter'] = 'Press ~INPUT_CONTEXT~ To Open ~b~Garage Menu',
+    ['EnterVh'] = 'Press ~INPUT_CONTEXT~ To Drive In Garage',
+    ['Exit'] = 'Press ~INPUT_CONTEXT~ To Open ~y~Garage Managment',
+
+    ['EnterMenu'] = {
+        ['Enter'] = 'Enter Garage',
+        ['Purchase'] = 'Purchase Garage For <b style="color:lime;">$%s</b>',
+        ['Request'] = 'Request To Enter',
+        ['Player'] = '%s\'s Garage',
+        ['Visit'] = 'Request To Enter',
+    },
+
+    ['ManagmentMenu'] = {
+        ['Exit'] = '<b style="color:red;">Exit Garage</b>',
+        ['ExitComfirm'] = 'There\'re still visitors in Your garage. If You exit they will be kicked. Do You want to continue?',
+        ['Visitors'] = 'Visitors: %s',
+        ['Requests'] = 'View Requests',
+        ['Manage'] = 'Manage Vehicles',
+        ['Floor'] = 'Floor Num. %s',
+        ['Vehicle'] = '<span style="color:yellow;">%s</span>: %s',
+        ['Replace'] = 'Replace',
+        ['NoRequests'] = 'No Requests'
+    },
+
+    ['Notifications'] = {
+        ['Purchase_Success'] = 'Successfully Purchased Garage',
+        ['Purchase_Fail'] = 'You Don\'t Have Enough Money',
+        ['NoActivateGarage'] = 'There Are No Active Garages',
+        ['NoOwn'] = 'You Don\'t Own Any Garage',
+        ['NoFreeSpot'] = 'Your Garage Is Full',
+        ['NoOwnVehicle'] = 'You Don\'t Own This Vehicle',
+        ['NewRequest'] = 'New Request To Come In',
+        ['Requested'] = 'You\'ve Requested To Enter %s\'s Garage',
+        ['TooFarAway'] = 'You\'re Too Far Away',
+        ['NoVisit'] = 'There\'re No Visitors'
+    },
+
+    ['Text3D'] = {
+        ['Unlock'] = 'Press [~b~E~s~] To ~g~Unlock~s~ Vehicle',
+        ['Lock'] = 'Press [~b~E~s~] To ~r~Lock~s~ Vehicle',
+    }
+}
