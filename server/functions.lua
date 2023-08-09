@@ -15,3 +15,13 @@ end
 _GetPlayerName = function(source)
     return ESX.GetPlayerFromId(source).getName()
 end
+
+_GetPlayerMoney = function(source)
+    return ESX.GetPlayerFromId(source).getMoney()
+end
+
+_RemovePlayerMoney = function(source, amount)
+    ESX.GetPlayerFromId(source).removeMoney(amount)
+end
+
+-- TODO On Player exit if inside garage, set last coords to outside

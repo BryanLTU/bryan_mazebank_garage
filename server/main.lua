@@ -265,10 +265,32 @@ lib.callback.register('bryan_mazebank_garage:server:doesOwnGarage', function(sou
     return result ~= nil
 end)
 
+lib.callback.register('bryan_mazebank_garage:server:doesOwnVehicle', function(source, plate)
+    local result = MySQL.Scalar.await('SELECT owner FROM owned_vehicles WHERE plate = ? AND owner = ?', { plate, _GetPlayerIdentifier(source) })
+
+    return result ~= nil
+end)
+
+lib.callback.register('bryan_mazebank_garage:server:purchaseGarage', function(source)
+    if _GetPlayerMoney(source) < Config.Price then
+        _Notification(source, _U('notification_buy_not_enough_money'))
+        return false
+    end
+
+    local result = MySQL.insert.await('INSERT INTO bryan_garage_owners (identifier) VALUES (?)', { _GetPlayerIdentifier(source) })
+    _RemovePlayerMoney(source, Config.Price)
+
+    return true
+end)
+
+lib.callback.register('bryan_mazebank_garage:server:doesGarageHaveEmptySpots', function(source)
+    return GetFreeSpotInGarage(source)
+end)
+
 -- TODO Replace garage instances from identifiers to sources
 RegisterNetEvent('bryan_mazebank_garage:server:requestToEnter', function(id)
     if not DoesGrarageInstanceExist(id) then
-        -- TODO Notification
+        _Notification(source, _U('notification_invite_instance_does_not_exist'))
         return false
     end
 
@@ -282,6 +304,30 @@ RegisterNetEvent('bryan_mazebank_garage:server:requestToEnter', function(id)
         _Notification(id, _U('notification_invite_request'))
     end
 end)
+
+GetFreeSpotInGarage = function(id)
+    local result = MySQL.query.await('SELECT floor, slot FROM bryan_garage_vehicles WHERE identifier = ?', { _GetPlayerIdentifier(id) })
+
+    if result then
+        for i = 1, 15 do
+            if not IsGarageSpotOccupied(result, i) then
+                return i
+            end
+        end
+    end
+
+    return false
+end
+
+IsGarageSpotOccupied = function(occupiedSlots, slot)
+    for k, v in ipairs(occupiedSlots) do
+        if v.slot == slot then
+            return true
+        end
+    end
+
+    return false
+end
 
 DoesGrarageInstanceExist = function(id)
     for k, v in ipairs(garageInstances) do

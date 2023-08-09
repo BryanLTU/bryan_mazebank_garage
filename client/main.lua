@@ -106,17 +106,44 @@ StartMarkers = function()
     end
 end
 
-PressedControl = function(type)
+RegisterContextMenus = function()
+    lib.registerContext({
+        id = 'bryan_mazebank_garage:enterVehicle',
+        title = _U('menu_title'),
+        options = {
+            title = _U('menu_enter_garage'),
+            description = _U('menu_enter_vehicle'),
+            onSelect = function()
+                local doesOwnGarage = lib.callback.await('bryan_mazebank_garage:server:doesOwnGarage', false)
+                local doesOwnVehicle = Config.CheckOwnership and lib.callback.await('bryan_mazebank_garage:server:doesOwnVehicle', false, _GetVehicleProperties(GetVehiclePedIsIn(PlayerPedId(), false)).plate) or true
+                
+                if not doesOwnGarage then
+                    _Notification(_U('notification_enter_garage_not_owned'))
+                    return
+                end
+
+                if not doesOwnVehicle then
+                    _Notification(_U('notification_vehicle_not_owned'))
+                    return
+                end
+
+                EnterGarage(ESX.GetPlayerData().identifier, 1, GetVehiclePedIsIn(PlayerPedId(), false))
+            end
+        }
+    })
+end
+
+PressedControl = function(position)
     local options = {}
 
-    if type == 'Enter' then
+    if position == 'Enter' then
         local doesOwnGarage = lib.callback.await('bryan_mazebank_garage:server:doesOwnGarage', false)
 
         if doesOwnGarage then
             table.insert(options, {
                 title = _U('menu_enter_garage'),
                 onSelect = function()
-
+                    EnterGarage(ESX.PlayerData.identifier, 1)
                 end
             })
         else
@@ -124,7 +151,12 @@ PressedControl = function(type)
                 title = _U('menu_enter_purchase'),
                 description = _U('price', Config.Price),
                 onSelect = function()
+                    local isPurchaseSuccessful = lib.callback.await('bryan_mazebank_garage:server:purchaseGarage', false)
 
+                    if isPurchaseSuccessful then
+                        SetUpGarages()
+                        lib.hideContext('bryan_garage_enter')
+                    end
                 end
             })
         end
@@ -133,184 +165,50 @@ PressedControl = function(type)
             title = _U('menu_enter_visit'),
             description = _U('menu_enter_visit_desc'),
             onSelect = function()
-                local input = lib.inputDialog(_U('menu_visit_title'), { _U('id') })
+                local input = lib.inputDialog(_U('menu_visit_title'), {
+                    { label = _U('id'), type = 'number', min = 1, default = 1 }
+                })
 
                 if not tonumber(input[1]) then return end
 
                 TriggerServerEvent('bryan_mazebank_garage:server:requestToEnter', tonumber(input[1]))
             end
         })
+    elseif position == 'Exit' then
+        GarageManagment()
     end
 
     lib.registerContext({
         id = 'bryan_garage_enter',
         title = _U('menu_enter_title'),
-        options = {
-            {
-                title = _U('menu_enter_purchase'),
-                description = _U('price', Config.Price)
-            }
-        }
+        options = options
     })
-
-    if type == 'Enter' then
-        if hasGarage then
-            ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'bryan_enter_menu', {
-                title = 'Garage',
-                align = Config.Menus.Align,
-                elements = {
-                    { label = Config.Strings['EnterMenu']['Enter'], value = 'enter' },
-                    { label = Config.Strings['EnterMenu']['Visit'], value = 'visit' }
-                }
-            }, function(data, menu)
-                if data.current.value == 'enter' then
-                    menu.close()
-                    isMenuOpened = false
-                    EnterGarage(ESX.PlayerData.identifier, 1)
-                elseif data.current.value == 'visit' then
-                    ESX.TriggerServerCallback('bryan_mazebank_garage:getAllAvailableGarages', function(garages, count)
-                        if count > 0 then
-                            for k, v in pairs(garages) do
-                                if requested[v.identifier] then
-                                    v.label = v.label .. ' <b style="color:red;">(Requested)</b>'
-                                    garages[k].requested = true
-                                end
-                            end
-
-                            ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'bryan_request', {
-                                title = Config.Strings['EnterMenu']['Visit'],
-                                align = Config.Menus.Align,
-                                elements = garages
-                            }, function(data2, menu2)
-                                if not data2.current.requested then
-                                    menu2.close()
-                                    menu.close()
-                                    isMenuOpened = false
-
-                                    requested[data2.current.identifier] = true
-                                    TriggerServerEvent('bryan_mazebank_garage:requestToEnter', data2.current.identifier)
-                                end
-                            end, function(data2, menu2)
-                                menu2.close()
-                            end)
-                        else
-                            ESX.ShowNotification(Config.Strings['Notifications']['NoActivateGarage'])
-                        end
-                    end)
-                end
-            end, function(data, menu)
-                menu.close()
-                isMenuOpened = false
-            end)
-        else
-            ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'bryan_purchase_menu', {
-                title = 'Purchase Garage',
-                align = Config.Menus.Align,
-                elements = {
-                    { label = string.format(Config.Strings['EnterMenu']['Purchase'], ESX.Math.GroupDigits(Config.Price)), value = 'purchase'},
-                    { label = Config.Strings['EnterMenu']['Visit'], value = 'visit' }
-                }
-            }, function(data, menu)
-                local action = data.current.value
-
-                if action == 'purchase' then
-                    ESX.TriggerServerCallback('bryan_mazebank_garage:attemptToPurchase', function(hasEnough) 
-                        if hasEnough then
-                            menu.close()
-                            isMenuOpened = false
-                            ESX.ShowNotification(Config.Strings['Notifications']['Purchase_Success'])
-                            SetUpGarages()
-                        else
-                            ESX.ShowNotification(Config.Strings['Notifications']['Purchase_Fail'])
-                        end
-                    end)
-                elseif action == 'visit' then
-                    ESX.TriggerServerCallback('bryan_mazebank_garage:getAllAvailableGarages', function(garages, count)
-                        if count > 0 then
-                            for k, v in pairs(garages) do
-                                if requested[v.identifier] then
-                                    v.label = v.label .. ' <b style="color:red;">(Requested)</b>'
-                                    garages[k].requested = true
-                                end
-                            end
-
-                            ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'bryan_request', {
-                                title = Config.Strings['EnterMenu']['Visit'],
-                                align = Config.Menus.Align,
-                                elements = garages
-                            }, function(data2, menu2)
-                                if not data2.current.requested then
-                                    menu2.close()
-                                    menu.close()
-                                    isMenuOpened = false
-
-                                    requested[data2.current.identifier] = true
-                                    TriggerServerEvent('bryan_mazebank_garage:requestToEnter', data2.current.identifier)
-                                end
-                            end, function(data2, menu2)
-                                menu2.close()
-                            end)
-                        else
-                            ESX.ShowNotification(Config.Strings['Notifications']['NoActivateGarage'])
-                        end
-                    end)
-                end
-            end, function(data, menu)
-                menu.close()
-                isMenuOpened = false
-            end)
-        end
-    elseif type == 'Exit' then
-        GarageManagment()
-    elseif type == 'EnterVh' then
-        if hasGarage then
-            local ownsVehicle = nil
-
-            if Config.CheckOwnership then
-                ESX.TriggerServerCallback('bryan_mazebank_garage:checkOwnerShip', function(doesOwn)
-                    ownsVehicle = doesOwn 
-                end, ESX.Game.GetVehicleProperties(GetVehiclePedIsIn(PlayerPedId(), false)).plate)
-            else
-                ownsVehicle = false
-            end
-
-            while ownsVehicle == nil do
-                Citizen.Wait(10)
-            end
-            
-            if not Config.CheckOwnership or ownsVehicle then
-                EnterGarage(ESX.GetPlayerData().identifier, 1, GetVehiclePedIsIn(PlayerPedId(), false))
-            else
-                ESX.ShowNotification(Config.Strings['Notifications']['NoOwnVehicle'])
-            end
-        else
-            ESX.ShowNotification(Config.Strings['Notifications']['NoOwn'])
-        end
-    end
 end
 
 EnterGarage = function(identifier, floor, vehicle)
     local coords = GetEntityCoords(PlayerPedId())
-    local distance = GetDistanceBetweenCoords(coords, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, true) <= 10.0
-    local distance2 = GetDistanceBetweenCoords(coords, Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z, true) <= 10.0
-    local distance3 = GetDistanceBetweenCoords(coords, Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z, true) <= 10.0
 
-    if not distance and not distance2 and not distance3 then
-        return ESX.ShowNotification(Config.Strings['Notifications']['TooFarAway'])
+    if #(coords - vector3(Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z)) > 10.0 and
+    #(coords - vector3(Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z)) > 10.0 and
+    #(coords - vector3(Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z)) > 10.0 then
+        _Notification(_U('notification_enter_too_far_away'))
+        return
     end
 
     DoScreenFadeOut(200)
     Citizen.Wait(200)
     
     if vehicle ~= nil then
-        local props = ESX.Game.GetVehicleProperties(vehicle)
-        isSettingUp = true
-        TriggerServerEvent('bryan_mazebank_garage:placeNewVehicle', props.plate, props, GetDisplayNameFromVehicleModel(props.model))
-        ESX.Game.DeleteVehicle(vehicle)
-    end
+        local doesGarageHaveEmptySpots = lib.callback.await('bryan_mazebank_garage:server:doesGarageHaveEmptySpots', false)
 
-    while isSettingUp == true do
-        Citizen.Wait(10)
+        if not doesGarageHaveEmptySpots then
+            _Notification(_U('notification_garage_full'))
+            return
+        end
+
+        local props = _GetVehicleProperties(vehicle)
+        TriggerServerEvent('bryan_mazebank_garage:placeNewVehicle', props.plate, props, _GetVehicleModelName(props.model))
+        _DeleteVehicle(vehicle)
     end
 
     local ped = PlayerPedId()
