@@ -1,5 +1,4 @@
-local garageInstances = {}
-local playerInstances = {}
+local garageInstances, playerInstances, requests = {}, {}, {}
 
 RegisterNetEvent('bryan_mazebank_garage:updatePlayerVisibility', function(value, identifier, floor)
     local _source = source
@@ -259,6 +258,8 @@ ESX.RegisterServerCallback('bryan_mazebank_garage:checkOwnerShip', function(sour
     cb(doesOwn)
 end)
 
+-- New Code
+
 lib.callback.register('bryan_mazebank_garage:server:doesOwnGarage', function(source)
     local result = MySQL.Scalar.await('SELECT identifier FROM bryan_garage_owners WHERE identifier = ?', { _GetPlayerIdentifier(source) })
 
@@ -284,7 +285,52 @@ lib.callback.register('bryan_mazebank_garage:server:purchaseGarage', function(so
 end)
 
 lib.callback.register('bryan_mazebank_garage:server:doesGarageHaveEmptySpots', function(source)
-    return GetFreeSpotInGarage(source)
+    return GetFreeSpotInGarage(source) ~= false
+end)
+
+lib.callback.register('bryan_mazebank_garage:server:getGarageVehicles', function(source, id)
+    if garageInstances[id] then return garageInstances[id] end
+    
+    local identifier = _GetPlayerIdentifier(id)
+    if not identifier then return {} end
+
+    local result = MySQL.query.await('SELECT * FROM bryan_garage_vehicles WHERE identifier = ?', { identifier })
+    garageInstances[id] = {}
+
+    if result then
+        for k, v in ipairs(result) do
+            table.insert(garageInstances[id], {
+                model = v.name,
+                plate = v.plate,
+                props = json.encode(v.properties),
+                slot = v.slot,
+            })
+        end
+    end
+
+    return garageInstances[id]
+end)
+
+lib.callback.register('bryan_mazebank_garage:server:isGarageOwner', function(source)
+    local id = GetInWhatGarage(source)
+
+    return source == id
+end)
+
+lib.callback.register('bryan_mazebank_garage:server:getVisitorCount', function(source)
+    return GetVisitorCount(source)
+end)
+
+lib.callback.register('bryan_mazebank_garage:server:getVisitors', function(source)
+    return GetVisitors(source)
+end)
+
+lib.callback.register('bryan_mazebank_garage:server:getRequestCount', function(source)
+    return #requests[source]
+end)
+
+lib.callback.register('bryan_mazebank_garage:server:getRequests', function(source)
+    return GetRequests(source)
 end)
 
 -- TODO Replace garage instances from identifiers to sources
@@ -294,14 +340,83 @@ RegisterNetEvent('bryan_mazebank_garage:server:requestToEnter', function(id)
         return false
     end
 
-    local _source = source
-    local xPlayer = _GetPlayerFromId(_source)
+    local xPlayer = _GetPlayerFromId(source)
     local xTarget = _GetPlayerFromId(id)
 
     if xPlayer and xTarget then
-        TriggerClientEvent('bryan_mazebank_garage:insertRequest', id, _GetPlayerName(_source), xPlayer.getIdentifier())
-        _Notification(_source, _U('notification_invite_requested', id))
+        if not requests[id] then requests[id] = {} end
+
+        table.insert(requests[id], source)
+
+        _Notification(source, _U('notification_invite_requested', id))
         _Notification(id, _U('notification_invite_request'))
+    end
+end)
+
+RegisterNetEvent('bryan_mazebank_garage:server:enterVehicle', function(plate, props, name)
+    local xPlayer = ESX.GetPlayerFromId(source)
+    local freeSpot = GetFreeSpotInGarage(source)
+
+    if freeSpot then
+        if garageInstances[source] then garageInstances[source] = nil end
+
+        MySQL.insert.await('INSERT INTO bryan_garage_vehicles (identifier, name, plate, properties, slot) VALUES (?, ?, ?, ?, ?)', {
+            _GetPlayerIdentifier(source), name, plate, json.encode(props), freeSpot
+        })
+
+        _UpdateOwnedVehicleTable(source, plate, true)
+    end
+end)
+
+RegisterNetEvent('bryan_mazebank_garage:server:exitVehicle', function(plate)
+    MySQL.update.await('DELETE FROM bryan_garage_vehicles WHERE plate = ?', { plate })
+
+    _UpdateOwnedVehicleTable(source, plate, false)
+end)
+
+RegisterNetEvent('bryan_mazebank_garage:server:enterGarage', function(id)
+    if not playerInstances[id] then playerInstances[id] = {} end
+    table.insert(playerInstances[id], source)
+
+    SetPlayerRoutingBucket(source, id)
+
+    TriggerClientEvent('bryan_mazebank_garage:clearRequested', source)
+    TriggerClientEvent('bryan_mazebank_garage:removeRequest', -1, _GetPlayerIdentifier(source))
+end)
+
+RegisterNetEvent('bryan_mazebank_garage:server:exitGarage', function()
+    local id = GetInWhatGarage(source)
+
+    if id then
+        RemovePlayerInstance(source, id)
+
+        if GetVisitorCount(id) < 0 then DeleteGarage(id) end
+
+        SetPlayerRoutingBucket(source, 0)
+    end
+end)
+
+RegisterNetEvent('bryan_mazebank_garage:server:kickFromGarage', function(data)
+    TriggerClientEvent('bryan_mazebank_garage:exitGarage', data.source)
+end)
+
+RegisterNetEvent('bryan_mazebank_garage:server:updateVehiclePosition', function(plate, slot, update)
+    MySQL.update.await('UPDATE bryan_garage_vehicles SET slot = ? WHERE plate = ?', { slot, plate })
+
+    if update then
+        if garageInstances[source] then garageInstances[source] = nil end
+
+        for k, v in ipairs(playerInstances[source]) do
+            TriggerClientEvent('bryan_mazebank_garage:forceUpdateVehicles', v, source)
+        end
+    end
+end)
+
+RegisterNetEvent('bryan_mazebank_garage:server:forceExitVisitors', function()
+    for k, v in pairs(playerInstances[source]) do
+        if v ~= source then
+            TriggerClientEvent('bryan_mazebank_garage:exitGarage', v)
+        end
     end
 end)
 
@@ -341,12 +456,8 @@ end
 
 GetInWhatGarage = function(source)
     for k, v in pairs(playerInstances) do
-        for l, b in pairs(v) do
-            for j, o in pairs(b) do
-                if o == source then
-                    return k
-                end
-            end
+        if v == source then
+            return k
         end
     end
 
@@ -380,43 +491,65 @@ end
 
 RemovePlayerInstance = function(source, identifier)
     for k, v in pairs(playerInstances[identifier]) do
-        for j, c in pairs(v) do
-            if c == source then
-                table.remove(playerInstances[identifier][k], j)
-                return true
-            end
+        if v == source then
+            table.remove(playerInstances[identifier], k)
+            return true
         end
     end
     
     return false
 end
 
-GetVisitors = function(identifier)
-    local visitors = {}
+GetVisitors = function(id)
+    local data = {}
 
-    for k, v in pairs(playerInstances[identifier]) do
-        for j, c in pairs(v) do
-            local xPlayer = ESX.GetPlayerFromId(c)
-
-            if xPlayer.getIdentifier() ~= identifier then
-                table.insert(visitors, {
-                    label = xPlayer.getName(),
-                    identifier = xPlayer.getIdentifier()
-                })
-            end
+    for k, v in ipairs(playerInstances[id]) do
+        if v ~= id then
+            table.insert(data, {
+                title = _GetPlayerName(v),
+                description = _U('kick'),
+                serverEvent = 'bryan_mazebank_garage:server:kickFromGarage',
+                args = { source = v },
+            })
         end
     end
 
-    return visitors
+    if #data == 0 then
+        table.insert(data, {
+            title = _U('no_visitors'),
+            disabled = true
+        })
+    end
+
+    return data
 end
 
-GetVisitorCount = function(identifier)
+GetRequests = function(id)
+    local data = {}
+
+    for k, v in ipairs(requests[id]) do
+        table.insert(data, {
+            title = _GetPlayerName(v),
+            description = _U('let_inside'),
+            source = v
+        })
+    end
+
+    if #data == 0 then
+        table.insert(data, {
+            title = _U('no_requests'),
+            disabled = true
+        })
+    end
+    
+    return data
+end
+
+GetVisitorCount = function(id)
     local count = -1
 
-    for k, v in pairs(playerInstances[identifier]) do
-        for j, c in pairs(v) do
-            count = count + 1
-        end
+    for k, v in pairs(playerInstances[id]) do
+        count = count + 1
     end
 
     return count

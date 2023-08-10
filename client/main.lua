@@ -3,6 +3,9 @@ local isMenuOpened, isSettingUp = false, false
 local blip, garage, requests, requested = nil, {}, {}, {}
 local currPlayers = {}
 
+local garageVehicles = {}
+local isInGarage, isInMagment = false, false
+
 Citizen.CreateThread(function()
     if not Config.DebugMode then
         while ESX.GetPlayerData().job == nil do
@@ -11,6 +14,7 @@ Citizen.CreateThread(function()
 
         ESX.PlayerData = ESX.GetPlayerData()
 
+        RegisterContextMenus()
         SetUpGarages()
         Citizen.CreateThread(StartMarkers)
         Citizen.CreateThread(SetupVisibility)
@@ -110,7 +114,7 @@ RegisterContextMenus = function()
     lib.registerContext({
         id = 'bryan_mazebank_garage:enterVehicle',
         title = _U('menu_title'),
-        options = {
+        options = {{
             title = _U('menu_enter_garage'),
             description = _U('menu_enter_vehicle'),
             onSelect = function()
@@ -127,8 +131,27 @@ RegisterContextMenus = function()
                     return
                 end
 
-                EnterGarage(ESX.GetPlayerData().identifier, 1, GetVehiclePedIsIn(PlayerPedId(), false))
+                EnterGarage(ESX.GetPlayerData().identifier, GetVehiclePedIsIn(PlayerPedId(), false))
             end
+        }}
+    })
+
+    lib.registerContext({
+        id = 'bryan_mazebank_garage:exitOptions',
+        title = _U('exit'),
+        options = {
+            {
+                title = _U('front_door'),
+                onSelect = ExitGarage,
+                menu = 'bryan_mazebank_garage:managment',
+                args = { door = 'front' },
+            },
+            {
+                title =  _U('garage_elevator'),
+                onSelect = ExitGarage,
+                menu = 'bryan_mazebank_garage:managment',
+                args = { door = 'elevator' },
+            }
         }
     })
 end
@@ -143,7 +166,7 @@ PressedControl = function(position)
             table.insert(options, {
                 title = _U('menu_enter_garage'),
                 onSelect = function()
-                    EnterGarage(ESX.PlayerData.identifier, 1)
+                    EnterGarage(ESX.PlayerData.identifier)
                 end
             })
         else
@@ -185,7 +208,7 @@ PressedControl = function(position)
     })
 end
 
-EnterGarage = function(identifier, floor, vehicle)
+EnterGarage = function(id, vehicle)
     local coords = GetEntityCoords(PlayerPedId())
 
     if #(coords - vector3(Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z)) > 10.0 and
@@ -207,72 +230,101 @@ EnterGarage = function(identifier, floor, vehicle)
         end
 
         local props = _GetVehicleProperties(vehicle)
-        TriggerServerEvent('bryan_mazebank_garage:placeNewVehicle', props.plate, props, _GetVehicleModelName(props.model))
+        TriggerServerEvent('bryan_mazebank_garage:server:enterVehicle', props.plate, props, _GetVehicleModelName(props.model))
         _DeleteVehicle(vehicle)
     end
 
-    local ped = PlayerPedId()
-    SetEntityCoords(ped, Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z, 0.0, 0.0, 0.0, false)
-    SetEntityVisible(ped, false, 0)
-    TriggerServerEvent('bryan_mazebank_garage:updatePlayerVisibility', true, identifier, floor)
+    isInGarage = true
+    SetEntityCoords(PlayerPedId(), Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z, 0.0, 0.0, 0.0, false)
+    TriggerServerEvent('bryan_mazebank_garage:server:enterGarage', id)
 
-    currFloor = floor
-
-    SpawnGarage(identifier)
+    SpawnGarage(id)
 
     DoScreenFadeIn(200)
 end
 
-SpawnGarage = function(identifier)
-    ClearGarage()
-    local floor = currFloor
+ExitGarage = function(data)
+    local isGarageOwner = lib.callback.await('bryan_mazebank_garage:server:isGarageOwner', false)
+    
+    if isGarageOwner then
+        local visitorCount = lib.callback.await('bryan_mazebank_garage:server:getVisitorCount', false)
 
-    ESX.TriggerServerCallback('bryan_mazebank_garage:getGarageVehicles', function(vehicles) 
-        for k, v in pairs(vehicles) do
-            local found = false
+        if visitorCount > 0 then
+            local alert = lib.alertDialog({
+                header = _U('warning'),
+                content = _U('exit_with_visitors_warning'),
+                centered = true,
+                cancel = true,
+            })
 
-            if v.floor == currFloor then
-                RequestVehicle(v.props.model)
-
-                ESX.Game.SpawnLocalVehicle(v.props.model, vector3(Config.Locations.VehicleLocations[v.slot].x, Config.Locations.VehicleLocations[v.slot].y, Config.Locations.VehicleLocations[v.slot].z), Config.Locations.VehicleLocations[v.slot].w, function(callback_vehicle) 
-                    ESX.Game.SetVehicleProperties(callback_vehicle, v.props)
-                    SetVehicleDoorsLocked(callback_vehicle, 2)
-                    SetEntityInvincible(callback_vehicle, true)
-
-                    found = true
-                    table.insert(garage, {
-                        entity = callback_vehicle,
-                        plate = v.plate,
-                        model = GetDisplayNameFromVehicleModel(v.props.model),
-                        floor = v.floor,
-                        slot = v.slot
-                    })
-                end)
-
-                Citizen.Wait(10)
-            end
-
-            if not found then
-                table.insert(garage, {
-                    plate = v.plate,
-                    model = GetDisplayNameFromVehicleModel(v.props.model),
-                    floor = v.floor,
-                    slot = v.slot
-                })
+            if alert == 'cancel' then
+                return
+            else
+                TriggerServerEvent('bryan_mazebank_garage:server:forceExitVisitors')
             end
         end
-        currFloor = 0
+    end
 
-        ESX.TriggerServerCallback('bryan_mazebank_garage:isGarageOwner', function(isOwner)
-            currFloor = floor
-            if isOwner then Citizen.CreateThread(DisplayUnlockText); end
-            Citizen.CreateThread(OnDriveExit)
-        end)
-    end, identifier)
+    DoScreenFadeOut(200)
+    Citizen.Wait(200)
+
+    isInGarage = false
+
+    if data.vehicle == nil then ClearGarage() end
+
+    local ped = PlayerPedId()
+    if data.door and data.door == 'elevator' then
+        if data.vehicle then
+            
+            SetEntityCoords(ped, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, 0.0, 0.0, 0.0, false)
+            
+            local props = ESX.Game.GetVehicleProperties(data.vehicle)
+            local localVehicle = _SpawnVehicle(props.model, vector3(Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z), Config.Locations.EnterVh.w)
+            _SetVehicleProperties(localVehicle, props)
+            TaskWarpPedIntoVehicle(ped, localVehicle, -1)
+            
+            if props then TriggerServerEvent('bryan_mazebank_garage:server:exitVehicle', props.plate) end
+        else
+            SetEntityCoords(ped, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, 0.0, 0.0, 0.0, false)
+        end
+    else
+        SetEntityCoords(ped, Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z, 0.0, 0.0, 0.0, false)
+    end
+
+    ClearGarage()
+    TriggerServerEvent('bryan_mazebank_garage:server:exitGarage')
+
+    DoScreenFadeIn(200)
+end
+
+SpawnGarage = function(id)
+    ClearGarage()
+    
+    local vehicles = lib.callback.await('bryan_mazebank_garage:server:getGarageVehicles', false, id)
+
+    for k, v in ipairs(vehicles) do
+        local localVehicle = _SpawnLocalVehicle(v.props.model, vector3(Config.Locations.VehicleLocations[v.slot].x, Config.Locations.VehicleLocations[v.slot].y, Config.Locations.VehicleLocations[v.slot].z), Config.Locations.VehicleLocations[v.slot].w)
+            
+        _SetVehicleProperties(localVehicle, v.props)
+        SetVehicleDoorsLocked(localVehicle, 2)
+        SetEntityInvincible(localVehicle, true)
+
+        table.insert(garageVehicles, {
+            entity = localVehicle,
+            plate = v.plate,
+            model = GetDisplayNameFromVehicleModel(v.props.model),
+            slot = v.slot
+        })
+
+        Citizen.Wait(5)
+    end
+
+    if id == GetPlayerServerId(PlayerId()) then Citizen.CreateThread(DisplayUnlockText); end
+    Citizen.CreateThread(OnDriveExit)
 end
 
 DisplayUnlockText = function()
-    while currFloor ~= 0 do
+    while isInGarage do
         local wait = 500
         local coords = GetEntityCoords(PlayerPedId())
 
@@ -307,7 +359,7 @@ DisplayUnlockText = function()
 end
 
 OnDriveExit = function()
-    while currFloor ~= 0 do
+    while isInGarage do
         local wait = 500
         local ped = PlayerPedId()
 
@@ -316,7 +368,7 @@ OnDriveExit = function()
             wait = 5
             
             if GetEntitySpeed(vehicle) * 3.6 > 2.0 then
-                ExitGarage('g', vehicle)
+                ExitGarage('elevator', vehicle)
                 return
             end
         end
@@ -326,13 +378,11 @@ OnDriveExit = function()
 end
 
 ClearGarage = function()
-    for k, v in pairs(garage) do
-        if v.entity then
-            ESX.Game.DeleteVehicle(v.entity)
-        end
+    for k, v in pairs(garageVehicles) do
+        if v.entity then _DeleteVehicle(v.entity) end
     end
 
-    garage = {}
+    garageVehicles = {}
 end
 
 RequestVehicle = function(model)
@@ -344,366 +394,133 @@ RequestVehicle = function(model)
 end
 
 GarageManagment = function()
-    local loadedVisitors = nil
-    local elements = {
-        { label = Config.Strings['ManagmentMenu']['Exit'], value = 'exit' } -- Exit Door | Exit Garage
+    local isGarageOwner = lib.callback.await('bryan_mazebank_garage:server:isGarageOwner', false)
+    local options = isGarageOwner and {
+        { title = _U('visitors'), description = _U('count', lib.callback.await('bryan_mazebank_garage:server:getVisitorCount', false)), menu = 'bryan_mazebank_garage:visitors' },
+        { title = _U('enter_requests'), description = _U('count', lib.callback.await('bryan_mazebank_garage:server:getRequestCount', false)), menu = 'bryan_mazebank_garage:requests' },
+        { title = _U('manage_vehicles'), disabled = #garageVehicles == 0, onSelect = StartVehicleManager }
+        { title = _U('exit'), menu = 'bryan_mazebank_garage:exitOptions' }
+    } or {
+        { title = _U('exit'), menu = 'bryan_mazebank_garage:exitOptions' }
     }
 
-    ESX.TriggerServerCallback('bryan_mazebank_garage:isGarageOwner', function(isOwner)
-        if isOwner then
-            ESX.TriggerServerCallback('bryan_mazebank_garage:getVisitorCount', function(count)
-                table.insert(elements, {
-                    label = string.format(Config.Strings['ManagmentMenu']['Visitors'], count),
-                    value = 'visitors'
-                })
-                loadedVisitors = count
-            end, ESX.GetPlayerData().identifier)
+    lib.registerContext({
+        id = 'bryan_mazebank_garage:managment',
+        title = _U('menu_title'),
+        options = options
+    })
 
-            while loadedVisitors == nil do
-                Citizen.Wait(10)
-            end
+    if isGarageOwner then
+        lib.registerContext({
+            id = 'bryan_mazebank_garage:visitors',
+            title = _U('visitors'),
+            menu = 'bryan_mazebank_garage:managment',
+            options = lib.callback.await('bryan_mazebank_garage:server:getVisitors', false),
+        })
 
-            table.insert(elements, {
-                label = Config.Strings['ManagmentMenu']['Requests'],
-                value = 'requests'
-            })
-            table.insert(elements, {
-                label = Config.Strings['ManagmentMenu']['Manage'],
-                value = 'manage'
-            })
-        end
-
-        for i = 1, Config.MaxFloors, 1 do
-            if i ~= currFloor then
-                table.insert(elements, {
-                    label = string.format(Config.Strings['ManagmentMenu']['Floor'], i),
-                    value = 'floor',
-                    id = i
-                })
-            end
-        end
-
-        ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'bryan_manage_menu', {
-            title = 'Managment',
-            align = Config.Menus.Align,
-            elements = elements
-        }, function(data, menu)
-            local action = data.current.value
-
-            if action == 'exit' then
-                ExitComfirmation()
-            elseif action == 'visitors' then
-                VisitorManager(loadedVisitors)
-            elseif action == 'requests' then
-                RequestManager()
-            elseif action == 'manage' then
-                VehicleManager()
-            elseif action == 'floor' then
-                menu.close()
-                isMenuOpened = false
-
-                ESX.TriggerServerCallback('bryan_mazebank_garage:getOwner', function(identifier)
-                    EnterGarage(identifier, data.current.id)
-                end)
-            end
-        end, function(data, menu)
-            menu.close()
-            isMenuOpened = false
-        end)
-    end)
-end
-
-VisitorManager = function(count)
-    if count > 0 then
-        ESX.TriggerServerCallback('bryan_mazebank_garage:getVisitors', function(visitors)
-            ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'bryan_visitors', {
-                title = 'Visitors',
-                align = Config.Menus.Align,
-                elements = visitors
-            }, function(data, menu)
-                ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'bryan_visitor_manager', {
-                    title = 'Actions',
-                    align = Config.Menus.Align,
-                    elements = {
-                        { label = 'Kick', value = 'kick' }
-                    }
-                }, function(data2, menu2)
-                    if data2.current.value == 'kick' then
-                        menu2.close()
-                        menu.close()
-                        TriggerServerEvent('bryan_mazebank_garage:forceExitSource', data.current.identifier)
-                    end
-                end, function(data2, menu2)
-                    menu2.close()
-                end)
-            end, function(data, menu)
-                menu.close()
-            end)
-        end, ESX.GetPlayerData().identifier)
-    else
-        ESX.ShowNotification(Config.Strings['Notifications']['NoVisit'])
-    end
-end
-
-RequestManager = function()
-    local elements = {
-        { label = Config.Strings['ManagmentMenu']['NoRequests'], value = 'none' }
-    }
-
-    if #requests > 0 then
-        elements = requests
-    end
-
-    ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'bryan_requests', {
-        title = 'Requests',
-        align = Config.Menus.Align,
-        elements = elements
-    }, function(data, menu)
-        if data.current.value ~= 'none' then
-
-            ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'bryan_requests_choice', {
-                title = 'Accept?',
-                align = Config.Menus.Align,
-                elements = {
-                    { label = 'Yes', value = true },
-                    { label = 'No', value = false }
-                }
-            }, function(data2, menu2)
-                if data2.current.value then
-                    menu.close()
-                    menu2.close()
-
-                    TriggerServerEvent('bryan_mazebank_garage:acceptRequest', ESX.GetPlayerData().identifier, data.current.value)
-                else
-                    menu2.close()
-                end
-            end, function(data2, menu2)
-                menu2.close()
-            end)
-
-        end
-    end, function(data, menu)
-        menu.close()
-    end)
-end
-
-VehicleManager = function()
-    local elements = {}
-
-    for i = 1, Config.MaxFloors, 1 do
-        table.insert(elements, {
-            label = string.format(Config.Strings['ManagmentMenu']['Floor'], i),
-            value = 'floor',
-            id = i
+        lib.registerContext({
+            id = 'bryan_mazebank_garage:requests',
+            title = _U('enter_requests'),
+            menu = 'bryan_mazebank_garage:managment',
+            options = lib.callback.await('bryan_mazebank_garage:server:getRequests', false),
         })
     end
 
-    ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'bryan_vehicle_manager_floor', {
-        title = 'Floors',
-        align = Config.Menus.Align,
-        elements = elements
-    }, function(data, menu)
-        local elements2 = {}
-
-        for i = 1, 15, 1 do
-            elements2[i] = {
-                label = string.format(Config.Strings['ManagmentMenu']['Vehicle'], i, 'None'),
-                plate = 'none',
-                slot = i
-            }
-        end
-
-        for k, v in pairs(garage) do
-            if v.floor == data.current.id then
-                elements2[v.slot] = {
-                    label = string.format(Config.Strings['ManagmentMenu']['Vehicle'] .. '(<span style="color:orange;">%s</span>)', v.slot, v.model, v.plate),
-                    plate = v.plate,
-                    slot = v.slot,
-                    model = v.model
-                }
-            end
-        end
-
-        ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'bryan_vehicle_manager_slot', {
-            title = 'Vehicles',
-            align = Config.Menus.Align,
-            elements = elements2
-        }, function(data2, menu2)
-
-            if data2.current.plate ~= 'none' then
-                ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'bryan_vehicle', {
-                    title = string.format('(%s)', data2.current.plate),
-                    align = Config.Menus.Align,
-                    elements = {
-                        { label = Config.Strings['ManagmentMenu']['Replace'], value = 'replace' }
-                    }
-                }, function(data3, menu3)
-                    
-                    ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'bryan_vehicle_choose_floor', {
-                        title = 'Floors',
-                        align = Config.Menus.Align,
-                        elements = elements
-                    }, function(data4, menu4)
-
-                        elements3 = {}
-
-                        for i = 1, 15, 1 do
-                            elements3[i] = {
-                                label = string.format(Config.Strings['ManagmentMenu']['Vehicle'], i, 'None'),
-                                plate = 'none',
-                                slot = i
-                            }
-                        end
-
-                        for k, v in pairs(garage) do
-                            if v.floor == data4.current.id then
-                                elements3[v.slot] = {
-                                    label = string.format(Config.Strings['ManagmentMenu']['Vehicle'] .. '(<span style="color:orange;">%s</span>)', v.slot, v.model, v.plate),
-                                    plate = v.plate,
-                                    slot = v.slot,
-                                    model = v.model
-                                }
-                            end
-                        end
-
-                        ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'bryan_vehicle_choose_slot', {
-                            title = 'Spots',
-                            align = Config.Menus.Align,
-                            elements = elements3
-                        }, function(data5, menu5)
-                            local currVehicle = data2.current
-
-                            isSettingUp = true
-
-                            if data5.current.plate ~= 'none' then
-                                local futuVehicle = data5.current
-
-                                TriggerServerEvent('bryan_mazebank_garage:updateVehiclePosition', currVehicle.model, currVehicle.plate, data4.current.id, data5.current.slot)
-                                TriggerServerEvent('bryan_mazebank_garage:updateVehiclePosition', futuVehicle.model, futuVehicle.plate, data.current.id, data2.current.slot, true)
-                            else
-                                TriggerServerEvent('bryan_mazebank_garage:updateVehiclePosition', currVehicle.model, currVehicle.plate, data4.current.id, data5.current.slot, true)
-                            end
-
-                            while isSettingUp do
-                                Citizen.Wait(10)
-                            end
-
-                            menu5.close()
-                            menu4.close()
-                            menu3.close()
-                            menu2.close()
-                            menu.close()
-                        end, function(data5, menu5)
-                            menu5.close()
-                            menu4.close()
-                            menu3.close()
-                        end)
-
-                    end, function(data4, menu4)
-                        menu4.close()
-                        menu3.close()
-                    end)
-
-                end, function(data3, menu3)
-                    menu3.close()  
-                end)
-            end
-
-        end, function(data2, menu2)
-            menu2.close()
-        end)
-
-    end, function(data, menu)
-        menu.close()
-        isMenuOpened = false
-    end)
+    lib.showContext('bryan_mazebank_garage:managment')
 end
 
-ExitComfirmation = function()
-    ESX.TriggerServerCallback('bryan_mazebank_garage:isGarageOwner', function(isOwner)
-        ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'bryan_exit_door', {
-            title = 'Door',
-            align = Config.Menus.Align,
-            elements = {
-                { label = 'Front Door', value = 'f' },
-                { label = 'Garage Exit', value = 'g' }
-            }
-        }, function(data2, menu2)
-            if isOwner then
-                ESX.TriggerServerCallback('bryan_mazebank_garage:getVisitorCount', function(count)
-                    if count > 0 then
-                        ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'bryan_exit_comfirmation', {
-                            title = Config.Strings['ManagmentMenu']['ExitComfirm'],
-                            align = Config.Menus.Align,
-                            elements = {
-                                { label = 'Yes', value = true },
-                                { label = 'No', value = false }
-                            }
-                        }, function(data, menu)
-                            if data.current.value then
-                                ExitGarage(data2.current.value)
-                                TriggerServerEvent('bryan_mazebank_garage:forceExit', ESX.GetPlayerData().identifier)
-                            else
-                                menu.close()
-                                menu2.close()
-                            end
-                        end, function(data, menu)
-                            menu.close()
-                            menu2.close()
-                        end)
-                    else
-                        ExitGarage(data2.current.value)
-                        TriggerServerEvent('bryan_mazebank_garage:forceExit', ESX.GetPlayerData().identifier)
-                    end
-                end, ESX.GetPlayerData().identifier)
+StartVehicleManager = function()
+    isInMagment = true
+
+    local currentSlot, selectedVehicle = GetFirstVehicleSlotInGarage(), nil
+    while isInGarage and isInMagment do
+        local message = string.format('%s\n%s\n%s\n%s',
+                                selectedVehicle == nil and _U('alert_vehicle_managment_select_vehicle') or _U('alert_vehicle_managment_select_spot'),
+                                _U('alert_vehicle_managment_position'), _U('alert_vehicle_managment_confirm'), _U('alert_vehicle_managment_cancel'))
+        
+        _ShowHelpNotification(message)
+
+        DrawMarker(0, Config.Locations.VehicleLocations[currentSlot].x, Config.Locations.VehicleLocations[currentSlot].y, Config.Locations.VehicleLocations[currentSlot].z + 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 255, 100, 0, 150, true, false, 2, false, nil, nil, false)
+
+        if IsControlJustReleased(1, 174) then
+            currentSlot = GetPreviousSlotInGarage(currentSlot, selectedVehicle == nil)
+        end
+
+        if IsControlJustReleased(1, 175) then
+            currentSlot = GetNextSlotInGarage(currentSlot, selectedVehicle == nil)
+        end
+
+        if IsControlJustReleased(1, 176) then
+            if selectedVehicle == nil then
+                selectedVehicle = GetVehicleFromSlot(currentSlot)
+                currentSlot = 1
             else
-                ExitGarage(data2.current.value)
+                isInMagment = false
+                PlaceVehicleInNewSlot(selectedVehicle, currentSlot)
             end
-        end, function(data2, menu2)
-            menu2.close()
-        end)
-    end)
-end
+        end
+        
+        if IsControlJustReleased(1, 177) then
+            isInMagment = false
+        end
 
-ExitGarage = function(door, vehicle)
-    DoScreenFadeOut(200)
-    Citizen.Wait(200)
-
-    ESX.UI.Menu.CloseAll()
-    isMenuOpened = false
-
-    currFloor = 0
-    if vehicle == nil then
-        ClearGarage()
+        Citizen.Wait(1)
     end
+end
 
-    local ped = PlayerPedId()
-    if door then
-        if door == 'f' then SetEntityCoords(ped, Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z, 0.0, 0.0, 0.0, false);
-        elseif door == 'g' then
-            if vehicle then
-                local props = ESX.Game.GetVehicleProperties(vehicle)
-                ClearGarage()
+PlaceVehicleInNewSlot = function(vehicle, slot)
+    local slotVehicle = GetVehicleFromSlot(slot)
 
-                SetEntityCoords(ped, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, 0.0, 0.0, 0.0, false)
-                ESX.Game.SpawnVehicle(props.model, vector3(Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z), Config.Locations.EnterVh.w, function(callback_vehicle) 
-                    ESX.Game.SetVehicleProperties(callback_vehicle, props)
-                    TaskWarpPedIntoVehicle(ped, callback_vehicle, -1)
-                end)
-                if props then
-                    TriggerServerEvent('bryan_mazebank_garage:removeVehicle', props.plate, GetDisplayNameFromVehicleModel(props.model))
-                end
-            else
-                SetEntityCoords(ped, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, 0.0, 0.0, 0.0, false)
-            end
-        end
+    if slotVehicle then
+        TriggerServerEvent('bryan_mazebank_garage:updateVehiclePosition', vehicle.plate, slot)
+        TriggerServerEvent('bryan_mazebank_garage:updateVehiclePosition', slotVehicle.plate, vehicle.slot, true)
     else
-        SetEntityCoords(ped, Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z, 0.0, 0.0, 0.0, false)
+        TriggerServerEvent('bryan_mazebank_garage:server:updateVehiclePosition', vehicle.plate, slot, true)
     end
-    TriggerServerEvent('bryan_mazebank_garage:updatePlayerVisibility', false, nil, nil)
-    SetEntityVisible(ped, true, 0)
+end
 
-    DoScreenFadeIn(200)
+GetFirstVehicleSlotInGarage = function()
+    return garageVehicles[1].slot
+end
+
+GetPreviousSlotInGarage = function(slot, checkIfVehicleExists)
+    if checkIfVehicleExists and #garageVehicles <= 1 then return slot end
+
+    slot = 1 == slot and #Config.Locations.VehicleLocations or slot - 1
+
+    if checkIfVehicleExists and not IsVehicleInSlot(slot) then return GetPreviousSlotInGarage(slot, checkIfVehicleExists) end
+
+    return slot
+end
+
+GetNextSlotInGarage = function(slot, checkIfVehicleExists)
+    if checkIfVehicleExists and #garageVehicles <= 1 then return slot end
+
+    slot = #Config.Locations.VehicleLocations == slot and 1 or slot + 1
+
+    if checkIfVehicleExists and not IsVehicleInSlot(slot) then return GetNextSlotInGarage(slot, checkIfVehicleExists) end
+
+    return slot
+end
+
+IsVehicleInSlot = function(slot)
+    for k, v in ipairs(garageVehicles) do
+        if v.slot == slot then
+            return true
+        end
+    end
+
+    return false
+end
+
+GetVehicleFromSlot = function(slot)
+    for k, v in ipairs(garageVehicles) do
+        if v.slot == slot then
+            return v
+        end
+    end
+
+    return nil
 end
 
 RegisterNetEvent('bryan_mazebank_garage:setVisibilityLocaly', function(players)
@@ -716,8 +533,8 @@ RegisterNetEvent('bryan_mazebank_garage:cancelSettingUp', function()
     isSettingUp = false
 end)
 
-RegisterNetEvent('bryan_mazebank_garage:forceUpdateVehicles', function(identifier)
-    SpawnGarage(identifier)
+RegisterNetEvent('bryan_mazebank_garage:forceUpdateVehicles', function(id)
+    SpawnGarage(id)
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:insertRequest', function(name, identifier)

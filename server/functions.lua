@@ -24,4 +24,12 @@ _RemovePlayerMoney = function(source, amount)
     ESX.GetPlayerFromId(source).removeMoney(amount)
 end
 
+_UpdateOwnedVehicleTable = function(source, plate, stored)
+    if Config.CheckOwnership then
+        MySQL.update.await('UPDATE owned_vehicles SET stored = ?, garage_name = "Maze Bank" WHERE owner = ? AND plate = ?', {
+            stored, _GetPlayerIdentifier(source), plate
+        })
+    end
+end
+
 -- TODO On Player exit if inside garage, set last coords to outside
