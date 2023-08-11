@@ -523,40 +523,13 @@ GetVehicleFromSlot = function(slot)
     return nil
 end
 
-RegisterNetEvent('bryan_mazebank_garage:setVisibilityLocaly', function(players)
-    currPlayers = players
-end)
+RegisterNetEvent('bryan_mazebank_garage:client:exitGarage', ExitGarage)
 
-RegisterNetEvent('bryan_mazebank_garage:exitGarage', ExitGarage)
-
-RegisterNetEvent('bryan_mazebank_garage:cancelSettingUp', function()
-    isSettingUp = false
-end)
-
-RegisterNetEvent('bryan_mazebank_garage:forceUpdateVehicles', function(id)
+RegisterNetEvent('bryan_mazebank_garage:client:forceUpdateVehicles', function(id)
     SpawnGarage(id)
 end)
 
-RegisterNetEvent('bryan_mazebank_garage:insertRequest', function(name, identifier)
-    table.insert(requests, {
-        label = name,
-        value = identifier
-    })
-end)
-
-RegisterNetEvent('bryan_mazebank_garage:removeRequest', function(identifier)
-    for k, v in pairs(requests) do
-        if v.identifier == identifier then
-            table.remove(requests, k)
-        end
-    end
-end)
-
-RegisterNetEvent('bryan_mazebank_garage:clearRequested', function()
-    requested = {}
-end)
-
-RegisterNetEvent('bryan_mazebank_garage:enterGarage', EnterGarage)
+RegisterNetEvent('bryan_mazebank_garage:client:visitGarage', VisitGarage)
 
 --[[AddEventHandler('onResourceStop', function(resourceName)
     if resourceName == GetCurrentResourceName() and currFloor ~= 0 then

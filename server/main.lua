@@ -444,31 +444,65 @@ IsGarageSpotOccupied = function(occupiedSlots, slot)
     return false
 end
 
-DoesGrarageInstanceExist = function(id)
-    for k, v in ipairs(garageInstances) do
-        if v.id == id then
-            return true
-        end
-    end
-
-    return false
-end
-
-GetInWhatGarage = function(source)
-    for k, v in pairs(playerInstances) do
-        if v == source then
-            return k
+GetGaragePlayerIsIn = function(identifier)
+    for k, v in ipairs(Garages) do
+        if v.IsVisitor(identifier) then
+            return v
         end
     end
 
     return nil
 end
 
-DeleteGarage = function(identifier)
-    for i = 1, 3 do
-        playerInstances[identifier][i] = {}
+ClearPlayerRequestsToGarages = function(identifier)
+    for k, v in ipairs(Garages) do
+        v.RemoveRequest(identifier)
     end
-    garageInstances[identifier] = nil
+end
+
+GetGarageById = function(id)
+    for k, v in ipairs(Garages) do
+        if v.id == id then
+            return v
+        end
+    end
+
+    return nil
+end
+
+GetGarageByOwner = function(identifier)
+    for k, v in ipairs(Garages) do
+        if v.IsOwner(identifier) then
+            return v
+        end
+    end
+
+    return nil
+end
+
+GetFreeSpotInGarage = function(id)
+    local identifier = _GetPlayerIdentifier(id)
+    local result = MySQL.query.await('SELECT floor, slot FROM bryan_garage_vehicles WHERE identifier = ?', { identifier })
+
+    if result then
+        for i = 1, 15 do
+            if not IsGarageSpotOccupied(result, i) then
+                return i
+            end
+        end
+    end
+
+    return false
+end
+
+IsGarageSpotOccupied = function(occupiedSlots, slot)
+    for k, v in ipairs(occupiedSlots) do
+        if v.slot == slot then
+            return true
+        end
+    end
+
+    return false
 end
 
 IsSpotFree = function(floor, slot, table)
@@ -481,78 +515,4 @@ IsSpotFree = function(floor, slot, table)
     return true
 end
 
-SetUpPlayerInstance = function(identifier)
-    playerInstances[identifier] = {}
-
-    for i = 1, 3, 1 do
-        playerInstances[identifier][i] = {}
-    end
-end
-
-RemovePlayerInstance = function(source, identifier)
-    for k, v in pairs(playerInstances[identifier]) do
-        if v == source then
-            table.remove(playerInstances[identifier], k)
-            return true
-        end
-    end
-    
-    return false
-end
-
-GetVisitors = function(id)
-    local data = {}
-
-    for k, v in ipairs(playerInstances[id]) do
-        if v ~= id then
-            table.insert(data, {
-                title = _GetPlayerName(v),
-                description = _U('kick'),
-                serverEvent = 'bryan_mazebank_garage:server:kickFromGarage',
-                args = { source = v },
-            })
-        end
-    end
-
-    if #data == 0 then
-        table.insert(data, {
-            title = _U('no_visitors'),
-            disabled = true
-        })
-    end
-
-    return data
-end
-
-GetRequests = function(id)
-    local data = {}
-
-    for k, v in ipairs(requests[id]) do
-        table.insert(data, {
-            title = _GetPlayerName(v),
-            description = _U('let_inside'),
-            source = v
-        })
-    end
-
-    if #data == 0 then
-        table.insert(data, {
-            title = _U('no_requests'),
-            disabled = true
-        })
-    end
-    
-    return data
-end
-
-GetVisitorCount = function(id)
-    local count = -1
-
-    for k, v in pairs(playerInstances[id]) do
-        count = count + 1
-    end
-
-    return count
-end
-
--- ON PLAYER LEAVE!
+-- TODO ON PLAYER LEAVE!
