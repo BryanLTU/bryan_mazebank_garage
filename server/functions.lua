@@ -1,7 +1,10 @@
 ESX = exports['es_extended']:getSharedObject()
 
 _Notification = function(source, msg)
-    TriggerClientEvent('esx:showNotification', source, msg)
+    TriggerClientEvent('ox_lib:notify', source, {
+        title = _U('menu_title'),
+        description = msg
+    })
 end
 
 _GetPlayerFromId = function(source)

@@ -1,7 +1,10 @@
 ESX = exports['es_extended']:getSharedObject()
 
 _Notification = function(msg)
-    ESX.ShowNotification(msg)
+    lib.notify({
+        title = _U('menu_title'),
+        description = msg
+    })
 end
 
 _SetVehicleProperties = function(vehicle, props)
