@@ -44,12 +44,4 @@ Locales['en'] = {
     ['alert_exit'] = '[E] - Manage Garage',
     ['alert_unlock'] = 'Press [~b~E~s~] To ~g~Unlock~s~ Vehicle',
     ['alert_lock'] = 'Press [~b~E~s~] To ~r~Lock~s~ Vehicle',
-
-
-    -- ['enter'] = 'Press ~INPUT_CONTEXT~ To Open~b~ Apartament Actions',
-    -- ['exit'] = 'Press ~INPUT_CONTEXT~ To~r~ Exit Apartament',
-    -- ['enter_garage'] = 'Enter Garage',
-    -- ['buy_garage'] = 'Buy Garage: $%s',
-    -- ['notification_buy_okay'] = 'You successfully bought~b~ MazeBank Garage',
-    -- ['notification_buy_not'] = 'You don\'t have enough money!'
 }
