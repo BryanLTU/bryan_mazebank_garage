@@ -1,5 +1,7 @@
 Config = {}
 
+Config.Locale = 'en'
+
 Config.DebugMode = false
 
 Config.Price     = 15000
@@ -67,53 +69,5 @@ Config.Markers = {
         Scale = { x = 1.0, y = 1.0, z = 1.0 },
         Colour = { r = 255, g = 0, b = 0, a = 255 },
         Rotate = true
-    }
-}
-
-Config.Menus = {
-    Align = 'right'
-}
-
-Config.Strings = {
-    ['Enter'] = 'Press ~INPUT_CONTEXT~ To Open ~b~Garage Menu',
-    ['EnterVh'] = 'Press ~INPUT_CONTEXT~ To Drive In Garage',
-    ['Exit'] = 'Press ~INPUT_CONTEXT~ To Open ~y~Garage Managment',
-
-    ['EnterMenu'] = {
-        ['Enter'] = 'Enter Garage',
-        ['Purchase'] = 'Purchase Garage For <b style="color:lime;">$%s</b>',
-        ['Request'] = 'Request To Enter',
-        ['Player'] = '%s\'s Garage',
-        ['Visit'] = 'Request To Enter',
-    },
-
-    ['ManagmentMenu'] = {
-        ['Exit'] = '<b style="color:red;">Exit Garage</b>',
-        ['ExitComfirm'] = 'There\'re still visitors in Your garage. If You exit they will be kicked. Do You want to continue?',
-        ['Visitors'] = 'Visitors: %s',
-        ['Requests'] = 'View Requests',
-        ['Manage'] = 'Manage Vehicles',
-        ['Floor'] = 'Floor Num. %s',
-        ['Vehicle'] = '<span style="color:yellow;">%s</span>: %s',
-        ['Replace'] = 'Replace',
-        ['NoRequests'] = 'No Requests'
-    },
-
-    ['Notifications'] = {
-        ['Purchase_Success'] = 'Successfully Purchased Garage',
-        ['Purchase_Fail'] = 'You Don\'t Have Enough Money',
-        ['NoActivateGarage'] = 'There Are No Active Garages',
-        ['NoOwn'] = 'You Don\'t Own Any Garage',
-        ['NoFreeSpot'] = 'Your Garage Is Full',
-        ['NoOwnVehicle'] = 'You Don\'t Own This Vehicle',
-        ['NewRequest'] = 'New Request To Come In',
-        ['Requested'] = 'You\'ve Requested To Enter %s\'s Garage',
-        ['TooFarAway'] = 'You\'re Too Far Away',
-        ['NoVisit'] = 'There\'re No Visitors'
-    },
-
-    ['Text3D'] = {
-        ['Unlock'] = 'Press [~b~E~s~] To ~g~Unlock~s~ Vehicle',
-        ['Lock'] = 'Press [~b~E~s~] To ~r~Lock~s~ Vehicle',
     }
 }
