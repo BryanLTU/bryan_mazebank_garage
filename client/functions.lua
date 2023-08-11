@@ -26,7 +26,7 @@ end
 _SpawnLocalVehicle = function(model, coords, heading)
     local vehicle = nil
 
-    ESX.Game.SpawnLocalVehicle(model, coords, heading, function(callback_vehicle) vehicle = callback end)
+    ESX.Game.SpawnLocalVehicle(model, coords, heading, function(callback_vehicle) vehicle = callback_vehicle end)
     while vehicle == nil do Citizen.Wait(10) end
 
     return vehicle

@@ -6,34 +6,21 @@ local currPlayers = {}
 local garageVehicles = {}
 local isInGarage, isInMagment = false, false
 
-Citizen.CreateThread(function()
+RegisterNetEvent('esx:playerLoaded', function()
     if not Config.DebugMode then
-        while ESX.GetPlayerData().job == nil do
-            Citizen.Wait(100)
-        end
-
-        ESX.PlayerData = ESX.GetPlayerData()
-
         RegisterContextMenus()
-        SetUpGarages()
+        RefreshGarageBlip()
         Citizen.CreateThread(StartMarkers)
-        Citizen.CreateThread(SetupVisibility)
     end
 end)
 
-SetUpGarages = function()
-    isSettingUp = true
+RefreshGarageBlip = function()
+    local doesOwnGarage = lib.callback.await('bryan_mazebank_garage:server:doesOwnGarage', false)
+    
+    if DoesBlipExist(blip) then RemoveBlip(blip); end
 
-    ESX.TriggerServerCallback('bryan_mazebank_garage:getGarage', function(gotGarage)
-        if DoesBlipExist(blip) then RemoveBlip(blip); end
-
-        if gotGarage then AddBlip('Owned');
-        else AddBlip('ForSale'); end
-
-        hasGarage = gotGarage
-
-        isSettingUp = false
-    end)
+    if doesOwnGarage then AddBlip('Owned');
+    else AddBlip('ForSale'); end
 end
 
 AddBlip = function(type)
@@ -52,61 +39,45 @@ AddBlip = function(type)
     end
 end
 
-SetupVisibility = function()
-    while true do
-        local wait = 500
-
-        if #currPlayers > 0 then
-            wait = 5
-
-            for k, v in pairs(currPlayers) do
-                SetEntityLocallyVisible(GetPlayerPed(GetPlayerFromServerId(v)))
-            end
-        end
-
-        Citizen.Wait(wait)
-    end
-end
-
 StartMarkers = function()
-    while true do
-        local wait = 1000
+    local isUIOpen = false
 
+    while true do
+        local sleep = true
         local ped = PlayerPedId()
         local coords = GetEntityCoords(ped)
-        local type, isNear, pos = 'none', false
-        
+        local positionType
+
         if GetDistanceBetweenCoords(coords, Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z, true) <= 10.0 then
-            isNear = true
-            type, pos = 'Enter', vector3(Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z)
-        elseif hasGarage and GetDistanceBetweenCoords(coords, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, true) <= 10.0 and IsPedInAnyVehicle(ped, false) then
-            isNear = true
-            type, pos = 'EnterVh', vector3(Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z)
+            positionType = 'Enter'
+        elseif IsPedInAnyVehicle(ped, false) and GetDistanceBetweenCoords(coords, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, true) <= 10.0 then
+            positionType = 'EnterVh'
         elseif GetDistanceBetweenCoords(coords, Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z, true) <= 10.0 then
-            isNear = true
-            type, pos = 'Exit', vector3(Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z)
-        else
-            type, isNear = 'none', false
+            positionType = 'Exit'
         end
 
-        if Config.Markers.Enable and isNear then
-            wait = 1
-            DrawMarker(Config.Markers[type].Type, pos, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Config.Markers[type].Scale.x, Config.Markers[type].Scale.y, Config.Markers[type].Scale.z, Config.Markers[type].Colour.r, Config.Markers[type].Colour.g, Config.Markers[type].Colour.b, Config.Markers[type].Colour.a, false, false, 2, Config.Markers[type].Rotate, nil, nil, false)
+        if Config.Markers.Enable and positionType then
+            sleep = false
+            DrawMarker(Config.Markers[positionType].Type, Config.Locations[positionType].x, Config.Locations[positionType].y, Config.Locations[positionType].z, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Config.Markers[positionType].Scale.x, Config.Markers[positionType].Scale.y, Config.Markers[positionType].Scale.z, Config.Markers[positionType].Colour.r, Config.Markers[positionType].Colour.g, Config.Markers[positionType].Colour.b, Config.Markers[positionType].Colour.a, false, false, 2, Config.Markers[positionType].Rotate, nil, nil, false)
         end
 
-        if isNear and not isMenuOpened and GetDistanceBetweenCoords(coords, pos, true) <= Config.Markers[type].Scale.x and not isSettingUp then
-            wait = 1
-            ESX.ShowHelpNotification(Config.Strings[type])
+        if positionType and #(coords - vector3(Config.Locations[positionType].x, Config.Locations[positionType].y, Config.Locations[positionType].z)) <= Config.Markers[positionType].Scale.x then
+            if not isUIOpen then
+                isUIOpen = true
+                local text, pos = _U('alert_' .. string.lower(positionType))
+                lib.showTextUI(text)
+            end
 
             if IsControlJustPressed(1, 51) then
-                PressedControl(type)
+                PressedControl(positionType)
             end
-        elseif isMenuOpened and GetDistanceBetweenCoords(coords, pos, true) > Config.Markers[type].Scale.x then
-            ESX.UI.Menu.CloseAll()
-            isMenuOpened = false
+        elseif isUIOpen then
+            isUIOpen = false
+            lib.hideTextUI()
         end
 
-        Citizen.Wait(wait)
+        if sleep then Citizen.Wait(500) end
+        Citizen.Wait(1)
     end
 end
 
@@ -131,7 +102,7 @@ RegisterContextMenus = function()
                     return
                 end
 
-                EnterGarage(ESX.GetPlayerData().identifier, GetVehiclePedIsIn(PlayerPedId(), false))
+                EnterGarage(GetVehiclePedIsIn(PlayerPedId(), false))
             end
         }}
     })
@@ -139,17 +110,16 @@ RegisterContextMenus = function()
     lib.registerContext({
         id = 'bryan_mazebank_garage:exitOptions',
         title = _U('exit'),
+        menu = 'bryan_mazebank_garage:managment',
         options = {
             {
                 title = _U('front_door'),
                 onSelect = ExitGarage,
-                menu = 'bryan_mazebank_garage:managment',
                 args = { door = 'front' },
             },
             {
                 title =  _U('garage_elevator'),
                 onSelect = ExitGarage,
-                menu = 'bryan_mazebank_garage:managment',
                 args = { door = 'elevator' },
             }
         }
@@ -157,16 +127,15 @@ RegisterContextMenus = function()
 end
 
 PressedControl = function(position)
-    local options = {}
-
     if position == 'Enter' then
+        local options = {}
         local doesOwnGarage = lib.callback.await('bryan_mazebank_garage:server:doesOwnGarage', false)
 
         if doesOwnGarage then
             table.insert(options, {
                 title = _U('menu_enter_garage'),
                 onSelect = function()
-                    EnterGarage(ESX.PlayerData.identifier)
+                    EnterGarage()
                 end
             })
         else
@@ -177,7 +146,7 @@ PressedControl = function(position)
                     local isPurchaseSuccessful = lib.callback.await('bryan_mazebank_garage:server:purchaseGarage', false)
 
                     if isPurchaseSuccessful then
-                        SetUpGarages()
+                        RefreshGarageBlip()
                         lib.hideContext('bryan_garage_enter')
                     end
                 end
@@ -197,18 +166,22 @@ PressedControl = function(position)
                 TriggerServerEvent('bryan_mazebank_garage:server:requestToEnter', tonumber(input[1]))
             end
         })
+
+        lib.registerContext({
+            id = 'bryan_garage_enter',
+            title = _U('menu_title'),
+            options = options
+        })
+    
+        lib.showContext('bryan_garage_enter')
     elseif position == 'Exit' then
         GarageManagment()
+    elseif position == 'EnterVh' then
+        lib.showContext('bryan_mazebank_garage:enterVehicle')
     end
-
-    lib.registerContext({
-        id = 'bryan_garage_enter',
-        title = _U('menu_enter_title'),
-        options = options
-    })
 end
 
-EnterGarage = function(id, vehicle)
+EnterGarage = function(vehicle)
     local coords = GetEntityCoords(PlayerPedId())
 
     if #(coords - vector3(Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z)) > 10.0 and
@@ -219,7 +192,7 @@ EnterGarage = function(id, vehicle)
     end
 
     DoScreenFadeOut(200)
-    Citizen.Wait(200)
+    Citizen.Wait(300)
     
     if vehicle ~= nil then
         local doesGarageHaveEmptySpots = lib.callback.await('bryan_mazebank_garage:server:doesGarageHaveEmptySpots', false)
@@ -230,15 +203,36 @@ EnterGarage = function(id, vehicle)
         end
 
         local props = _GetVehicleProperties(vehicle)
-        TriggerServerEvent('bryan_mazebank_garage:server:enterVehicle', props.plate, props, _GetVehicleModelName(props.model))
+        TriggerServerEvent('bryan_mazebank_garage:server:enterVehicle', props.plate, props)
         _DeleteVehicle(vehicle)
     end
 
     isInGarage = true
     SetEntityCoords(PlayerPedId(), Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z, 0.0, 0.0, 0.0, false)
+    TriggerServerEvent('bryan_mazebank_garage:server:enterGarage')
+
+    SpawnGarage()
+
+    DoScreenFadeIn(200)
+end
+
+VisitGarage = function(id)
+    local ped = PlayerPedId()
+    local coords = GetEntityCoords(ped)
+
+    if #(coords - vector3(Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z)) > 10.0 then
+        _Notification(_U('notification_enter_too_far_away'))
+        return
+    end
+
+    DoScreenFadeOut(200)
+    Citizen.Wait(300)
+
+    isInGarage = true
+    SetEntityCoords(PlayerPedId(), Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z, 0.0, 0.0, 0.0, false)
     TriggerServerEvent('bryan_mazebank_garage:server:enterGarage', id)
 
-    SpawnGarage(id)
+    SpawnGarage()
 
     DoScreenFadeIn(200)
 end
@@ -268,14 +262,9 @@ ExitGarage = function(data)
     DoScreenFadeOut(200)
     Citizen.Wait(200)
 
-    isInGarage = false
-
-    if data.vehicle == nil then ClearGarage() end
-
     local ped = PlayerPedId()
     if data.door and data.door == 'elevator' then
         if data.vehicle then
-            
             SetEntityCoords(ped, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, 0.0, 0.0, 0.0, false)
             
             local props = ESX.Game.GetVehicleProperties(data.vehicle)
@@ -291,20 +280,22 @@ ExitGarage = function(data)
         SetEntityCoords(ped, Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z, 0.0, 0.0, 0.0, false)
     end
 
+    isInGarage = false
     ClearGarage()
     TriggerServerEvent('bryan_mazebank_garage:server:exitGarage')
 
     DoScreenFadeIn(200)
 end
 
-SpawnGarage = function(id)
-    ClearGarage()
+SpawnGarage = function()
+    local vehicles = lib.callback.await('bryan_mazebank_garage:server:getCurrentGarageVehicles', false)
+    local isGarageOwner = lib.callback.await('bryan_mazebank_garage:server:isGarageOwner', false)
     
-    local vehicles = lib.callback.await('bryan_mazebank_garage:server:getGarageVehicles', false, id)
+    ClearGarage()
 
     for k, v in ipairs(vehicles) do
         local localVehicle = _SpawnLocalVehicle(v.props.model, vector3(Config.Locations.VehicleLocations[v.slot].x, Config.Locations.VehicleLocations[v.slot].y, Config.Locations.VehicleLocations[v.slot].z), Config.Locations.VehicleLocations[v.slot].w)
-            
+
         _SetVehicleProperties(localVehicle, v.props)
         SetVehicleDoorsLocked(localVehicle, 2)
         SetEntityInvincible(localVehicle, true)
@@ -319,13 +310,13 @@ SpawnGarage = function(id)
         Citizen.Wait(5)
     end
 
-    if id == GetPlayerServerId(PlayerId()) then Citizen.CreateThread(DisplayUnlockText); end
+    if isGarageOwner then Citizen.CreateThread(DisplayUnlockText); end
     Citizen.CreateThread(OnDriveExit)
 end
 
 DisplayUnlockText = function()
     while isInGarage do
-        local wait = 500
+        local sleep = true
         local coords = GetEntityCoords(PlayerPedId())
 
         for k, v in pairs(garage) do
@@ -333,17 +324,17 @@ DisplayUnlockText = function()
                 local doorPos = GetWorldPositionOfEntityBone(v.entity, GetEntityBoneIndexByName(v.entity, 'door_dside_f'))
 
                 if GetDistanceBetweenCoords(coords, doorPos, true) <= 1.0 then
-                    wait = 5
+                    sleep = false
 
                     if GetVehicleDoorLockStatus(v.entity) == 2 then
-                        ESX.Game.Utils.DrawText3D(doorPos, Config.Strings['Text3D']['Unlock'], 1.0, 8)
+                        ESX.Game.Utils.DrawText3D(doorPos, _U('alert_unlock'), 1.0, 8)
 
                         if IsControlJustPressed(1, 51) then
                             Citizen.Wait(500)
                             SetVehicleDoorsLocked(v.entity, 1)
                         end
                     else
-                        ESX.Game.Utils.DrawText3D(doorPos, Config.Strings['Text3D']['Lock'], 1.0, 8)
+                        ESX.Game.Utils.DrawText3D(doorPos, _U('alert_lock'), 1.0, 8)
 
                         if IsControlJustPressed(1, 51) then
                             Citizen.Wait(500)
@@ -354,7 +345,8 @@ DisplayUnlockText = function()
             end
         end
 
-        Citizen.Wait(wait)
+        if sleep then Citizen.Wait(100) end
+        Citizen.Wait(1)
     end
 end
 
@@ -368,7 +360,7 @@ OnDriveExit = function()
             wait = 5
             
             if GetEntitySpeed(vehicle) * 3.6 > 2.0 then
-                ExitGarage('elevator', vehicle)
+                ExitGarage({ door = 'elevator', vehicle = vehicle })
                 return
             end
         end
@@ -395,18 +387,26 @@ end
 
 GarageManagment = function()
     local isGarageOwner = lib.callback.await('bryan_mazebank_garage:server:isGarageOwner', false)
+    local garageId = lib.callback.await('bryan_mazebank_garage:server:getGarageId', false)
+    local visitorCount, requestCount = 0, 0
+
+    if isGarageOwner then
+        visitorCount = lib.callback.await('bryan_mazebank_garage:server:getVisitorCount', false)
+        requestCount = lib.callback.await('bryan_mazebank_garage:server:getRequestCount', false)
+    end
+
     local options = isGarageOwner and {
-        { title = _U('visitors'), description = _U('count', lib.callback.await('bryan_mazebank_garage:server:getVisitorCount', false)), menu = 'bryan_mazebank_garage:visitors' },
-        { title = _U('enter_requests'), description = _U('count', lib.callback.await('bryan_mazebank_garage:server:getRequestCount', false)), menu = 'bryan_mazebank_garage:requests' },
-        { title = _U('manage_vehicles'), disabled = #garageVehicles == 0, onSelect = StartVehicleManager }
-        { title = _U('exit'), menu = 'bryan_mazebank_garage:exitOptions' }
+        { title = _U('visitors'), description = _U('count', visitorCount), menu = 'bryan_mazebank_garage:visitors', disabled = visitorCount == 0 },
+        { title = _U('enter_requests'), description = _U('count', requestCount), menu = 'bryan_mazebank_garage:requests', disabled = requestCount == 0 },
+        { title = _U('manage_vehicles'), disabled = #garageVehicles == 0, onSelect = StartVehicleManager },
+        { title = _U('exit'), menu = 'bryan_mazebank_garage:exitOptions' },
     } or {
-        { title = _U('exit'), menu = 'bryan_mazebank_garage:exitOptions' }
+        { title = _U('exit'), menu = 'bryan_mazebank_garage:exitOptions' },
     }
 
     lib.registerContext({
         id = 'bryan_mazebank_garage:managment',
-        title = _U('menu_title'),
+        title = _U('menu_title_id', garageId),
         options = options
     })
 
@@ -437,10 +437,11 @@ StartVehicleManager = function()
         local message = string.format('%s\n%s\n%s\n%s',
                                 selectedVehicle == nil and _U('alert_vehicle_managment_select_vehicle') or _U('alert_vehicle_managment_select_spot'),
                                 _U('alert_vehicle_managment_position'), _U('alert_vehicle_managment_confirm'), _U('alert_vehicle_managment_cancel'))
-        
+        local markerColor = selectedVehicle == nil and { r = 255, g = 50, b = 50 } or { r = 50, g = 255, b = 50 }
+
         _ShowHelpNotification(message)
 
-        DrawMarker(0, Config.Locations.VehicleLocations[currentSlot].x, Config.Locations.VehicleLocations[currentSlot].y, Config.Locations.VehicleLocations[currentSlot].z + 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 255, 100, 0, 150, true, false, 2, false, nil, nil, false)
+        DrawMarker(0, Config.Locations.VehicleLocations[currentSlot].x, Config.Locations.VehicleLocations[currentSlot].y, Config.Locations.VehicleLocations[currentSlot].z + 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, markerColor.r, markerColor.g, markerColor.b, 150, true, false, 2, false, nil, nil, false)
 
         if IsControlJustReleased(1, 174) then
             currentSlot = GetPreviousSlotInGarage(currentSlot, selectedVehicle == nil)
@@ -472,15 +473,20 @@ PlaceVehicleInNewSlot = function(vehicle, slot)
     local slotVehicle = GetVehicleFromSlot(slot)
 
     if slotVehicle then
-        TriggerServerEvent('bryan_mazebank_garage:updateVehiclePosition', vehicle.plate, slot)
-        TriggerServerEvent('bryan_mazebank_garage:updateVehiclePosition', slotVehicle.plate, vehicle.slot, true)
+        TriggerServerEvent('bryan_mazebank_garage:server:updateVehiclePosition', { plate = vehicle.plate, slot = slot, previousSlot = vehicle.slot }, { plate = slotVehicle.plate, slot = vehicle.slot, previousSlot = slot })
     else
-        TriggerServerEvent('bryan_mazebank_garage:server:updateVehiclePosition', vehicle.plate, slot, true)
+        TriggerServerEvent('bryan_mazebank_garage:server:updateVehiclePosition', { plate = vehicle.plate, slot = slot, previousSlot = vehicle.slot })
     end
 end
 
 GetFirstVehicleSlotInGarage = function()
-    return garageVehicles[1].slot
+    local minSlot = garageVehicles[1].slot
+
+    for k, v in ipairs(garageVehicles) do
+        if v.slot < minSlot then minSlot = v.slot end
+    end
+
+    return minSlot
 end
 
 GetPreviousSlotInGarage = function(slot, checkIfVehicleExists)

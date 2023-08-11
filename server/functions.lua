@@ -15,6 +15,10 @@ _GetPlayerIdentifier = function(source)
     return ESX.GetPlayerFromId(source).getIdentifier()
 end
 
+_GetPlayerId = function(identifier)
+    return ESX.GetPlayerFromIdentifier(identifier).source
+end
+
 _GetPlayerName = function(source)
     return ESX.GetPlayerFromId(source).getName()
 end

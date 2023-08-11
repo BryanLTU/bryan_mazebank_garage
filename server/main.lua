@@ -1,273 +1,24 @@
-local garageInstances, playerInstances, requests = {}, {}, {}
+local Garages = {}
 
-RegisterNetEvent('bryan_mazebank_garage:updatePlayerVisibility', function(value, identifier, floor)
-    local _source = source
+MySQL.ready(function()
+    local result = MySQL.query.await('SELECT identifier FROM bryan_garage_owners')
 
-    if value then
+    if result then
+        local currentId = 0
 
-        if not playerInstances[identifier] then SetUpPlayerInstance(identifier) end
-        RemovePlayerInstance(_source, identifier)
-        table.insert(playerInstances[identifier][floor], _source)
-
-        local xPlayers = ESX.GetPlayers()
-
-        for k, v in pairs(playerInstances[identifier]) do
-            for j, c in pairs(v) do
-                TriggerClientEvent('bryan_mazebank_garage:setVisibilityLocaly', c, playerInstances[identifier][k])
-            end
-        end
-
-        TriggerClientEvent('bryan_mazebank_garage:clearRequested', _source)
-        TriggerClientEvent('bryan_mazebank_garage:removeRequest', -1, ESX.GetPlayerFromId(_source).getIdentifier())
-
-    else
-
-        identifier = GetInWhatGarage(_source)
-        if identifier then
-            RemovePlayerInstance(_source, identifier)
-
-            if GetVisitorCount(identifier) < 0 then
-                DeleteGarage(identifier)
-            end
-
-            TriggerClientEvent('bryan_mazebank_garage:setVisibilityLocaly', _source, {})
-        end
-
-    end
-end)
-
-RegisterNetEvent('bryan_mazebank_garage:forceExit', function(identifier)
-    local xPlayer = ESX.GetPlayerFromIdentifier(identifier)
-
-    for k, v in pairs(playerInstances[identifier]) do
-        for j, c in pairs(v) do
-            if c ~= xPlayer.source then
-                TriggerClientEvent('bryan_mazebank_garage:exitGarage', c)
-            end
+        for k, v in ipairs(result) do
+            currentId = currentId + 1
+            table.insert(Garages, CreateGarageInstance(currentId, v.identifier))
         end
     end
 end)
-
-RegisterNetEvent('bryan_mazebank_garage:forceExitSource', function(identifier)
-    local xTarget = ESX.GetPlayerFromIdentifier(identifier)
-    TriggerClientEvent('bryan_mazebank_garage:exitGarage', xTarget.source)
-end)
-
-RegisterNetEvent('bryan_mazebank_garage:placeNewVehicle', function(plate, props, name)
-    local xPlayer = ESX.GetPlayerFromId(source)
-    local result = MySQL.Sync.fetchAll('SELECT * FROM bryan_garage_vehicles WHERE identifier = @identifier', { ['@identifier'] = xPlayer.getIdentifier() })
-    local found, hSlot, hFloor = false, 0, 0
-
-    if result and result[1] then
-        for i = 1, 4 do
-            for j = 1, 16 do
-                if IsSpotFree(i, j, result) then
-                    found, hFloor, hSlot = true, i, j
-                    break
-                end
-            end
-
-            if found then break; end
-        end
-    else
-        found, hFloor, hSlot = true, 1, 1
-    end
-
-    if found then
-        if garageInstances[xPlayer.getIdentifier()] then garageInstances[xPlayer.getIdentifier()] = nil end
-
-        MySQL.Async.execute('INSERT INTO bryan_garage_vehicles (identifier, name, plate, properties, floor, slot) VALUES (@identifier, @name, @plate, @props, @floor, @slot)', {
-            ['@identifier'] = xPlayer.getIdentifier(),
-            ['@name'] = name,
-            ['@plate'] = plate,
-            ['@props'] = json.encode(props),
-            ['@floor'] = hFloor,
-            ['@slot'] = hSlot
-        })
-
-        if Config.CheckOwnership then
-            MySQL.Async.execute('UPDATE owned_vehicles SET stored = @stored, garage_name = @garage WHERE owner = @identifier AND plate = @plate', {
-                ['@stored'] = true,
-                ['@garage'] = 'Maze Bank',
-                ['@identifier'] = xPlayer.getIdentifier(),
-                ['@plate'] = plate
-            })
-        end
-    else
-        xPlayer.showNotification(Config.Strings['Notifications']['NoFreeSpot'])
-    end
-
-    TriggerClientEvent('bryan_mazebank_garage:cancelSettingUp', xPlayer.source)
-end)
-
-RegisterNetEvent('bryan_mazebank_garage:removeVehicle', function(plate, name)
-    local xPlayer = ESX.GetPlayerFromId(source)
-    MySQL.Async.execute('DELETE FROM bryan_garage_vehicles WHERE name = @name AND plate = @plate', {
-        ['@name'] = name,
-        ['@plate'] = plate
-    })
-
-    if Config.CheckOwnership then
-        MySQL.Async.execute('UPDATE owned_vehicles SET stored = @stored WHERE owner = @owner AND plate = @plate', {
-            ['@stored'] = false,
-            ['@owner'] = xPlayer.getIdentifier(),
-            ['@plate'] = plate
-        })
-    end
-end)
-
-RegisterNetEvent('bryan_mazebank_garage:requestToEnter', function(rIdentifier)
-    local _source = source
-    local xPlayer = ESX.GetPlayerFromId(_source)
-    local xTarget = ESX.GetPlayerFromIdentifier(rIdentifier)
-
-    if xPlayer and xTarget then
-        TriggerClientEvent('bryan_mazebank_garage:insertRequest', xTarget.source, xPlayer.getName(), xPlayer.getIdentifier())
-        xPlayer.showNotification(string.format(Config.Strings['Notifications']['Requested'], xTarget.getName()))
-        xTarget.showNotification(Config.Strings['Notifications']['NewRequest'])
-    end
-end)
-
-RegisterNetEvent('bryan_mazebank_garage:updateVehiclePosition', function(model, plate, floor, slot, update)
-    local _source = source
-    local xPlayer = ESX.GetPlayerFromId(_source)
-
-    if xPlayer then
-        MySQL.Async.execute('UPDATE bryan_garage_vehicles SET floor = @floor, slot = @slot WHERE name = @name AND plate = @plate', {
-            ['@floor'] = floor,
-            ['@slot'] = slot,
-            ['@name'] = model,
-            ['@plate'] = plate
-        }, function(rowsChanged)
-            if update then
-                if garageInstances[xPlayer.getIdentifier()] then garageInstances[xPlayer.getIdentifier()] = nil end
-                for k, v in pairs(playerInstances[xPlayer.getIdentifier()]) do 
-                    for j, c in pairs(v) do
-                        TriggerClientEvent('bryan_mazebank_garage:forceUpdateVehicles', c, xPlayer.getIdentifier())
-                    end
-                end
-                TriggerClientEvent('bryan_mazebank_garage:cancelSettingUp', xPlayer.source)
-            end
-        end)
-    end
-end)
-
-RegisterNetEvent('bryan_mazebank_garage:acceptRequest', function(sIdentifier, rIdentifier)
-    local xTarget = ESX.GetPlayerFromIdentifier(rIdentifier)
-
-    TriggerClientEvent('bryan_mazebank_garage:removeRequest', -1, sIdentifier)
-    TriggerClientEvent('bryan_mazebank_garage:enterGarage', xTarget.source, sIdentifier, 1, nil)
-end)
-
-
-
-ESX.RegisterServerCallback('bryan_mazebank_garage:getGarage', function(source, cb)
-    local xPlayer = ESX.GetPlayerFromId(source)
-
-    local result = MySQL.Sync.fetchAll('SELECT identifier FROM bryan_garage_owners WHERE identifier = @identifier', { ['@identifier'] =  xPlayer.getIdentifier() })
-    local gotGarage = (result ~= nil and result[1] ~= nil)
-
-    cb(gotGarage)
-end)
-
-ESX.RegisterServerCallback('bryan_mazebank_garage:getGarageVehicles', function(source, cb, identifier)
-    if garageInstances[identifier] then
-        cb(garageInstances[identifier])
-    else
-        local result = MySQL.Sync.fetchAll('SELECT * FROM bryan_garage_vehicles WHERE identifier = @identifier', { ['@identifier'] = identifier })
-
-        garageInstances[identifier] = {}
-
-        if result ~= nil then            
-            for k, v in pairs(result) do
-                table.insert(garageInstances[identifier], {
-                    model = v.name,
-                    plate = v.plate,
-                    props = json.decode(v.properties),
-                    floor = v.floor,
-                    slot  = v.slot
-                })
-            end
-        end
-
-        cb(garageInstances[identifier])
-    end
-end)
-
-ESX.RegisterServerCallback('bryan_mazebank_garage:attemptToPurchase', function(source, cb)
-    local xPlayer = ESX.GetPlayerFromId(source)
-    local hasEnough = false
-
-    if xPlayer and xPlayer.getMoney() >= Config.Price then
-        hasEnough = nil
-        xPlayer.removeMoney(Config.Price)
-
-        MySQL.Async.execute('INSERT INTO bryan_garage_owners (identifier) VALUES (@identifier)', { ['@identifier'] = xPlayer.getIdentifier() }, function(rowsChanged)
-            hasEnough = true
-        end)
-    end
-
-    while hasEnough == nil do
-        Citizen.Wait(10)
-    end
-
-    cb(hasEnough)
-end)
-
-ESX.RegisterServerCallback('bryan_mazebank_garage:isGarageOwner', function(source, cb)
-    local xPlayer = ESX.GetPlayerFromId(source)
-
-    local garage = GetInWhatGarage(source)
-    cb(garage == xPlayer.getIdentifier())
-end)
-
-ESX.RegisterServerCallback('bryan_mazebank_garage:getOwner', function(source, cb)
-    cb(GetInWhatGarage(source))
-end)
-
-ESX.RegisterServerCallback('bryan_mazebank_garage:getVisitorCount', function(source, cb, identifier)
-    cb(GetVisitorCount(identifier))
-end)
-
-ESX.RegisterServerCallback('bryan_mazebank_garage:getVisitors', function(source, cb, identifier)
-    cb(GetVisitors(identifier))
-end)
-
-ESX.RegisterServerCallback('bryan_mazebank_garage:getAllAvailableGarages', function(source, cb)
-    local garages, count = {}, 0
-
-    for k, v in pairs(garageInstances) do
-        count = count + 1
-        table.insert(garages, {
-            label = string.format(Config.Strings['EnterMenu']['Player'], ESX.GetPlayerFromIdentifier(k).getName()),
-            identifier = k,
-            requested = false
-        })
-    end
-
-    cb(garages, count)
-end)
-
-ESX.RegisterServerCallback('bryan_mazebank_garage:checkOwnerShip', function(source, cb, plate)
-    local xPlayer = ESX.GetPlayerFromId(source)
-    local doesOwn = false
-
-    local result = MySQL.Sync.fetchAll('SELECT owner FROM owned_vehicles WHERE plate = @plate', { ['@plate'] = plate })
-    if result and result[1] and result[1].owner == xPlayer.getIdentifier() then doesOwn = true end
-
-    cb(doesOwn)
-end)
-
--- New Code
 
 lib.callback.register('bryan_mazebank_garage:server:doesOwnGarage', function(source)
-    local result = MySQL.Scalar.await('SELECT identifier FROM bryan_garage_owners WHERE identifier = ?', { _GetPlayerIdentifier(source) })
-
-    return result ~= nil
+    return IsPlayerGarageOwner(source)
 end)
 
 lib.callback.register('bryan_mazebank_garage:server:doesOwnVehicle', function(source, plate)
-    local result = MySQL.Scalar.await('SELECT owner FROM owned_vehicles WHERE plate = ? AND owner = ?', { plate, _GetPlayerIdentifier(source) })
+    local result = MySQL.scalar.await('SELECT owner FROM owned_vehicles WHERE plate = ? AND owner = ?', { plate, _GetPlayerIdentifier(source) })
 
     return result ~= nil
 end)
@@ -288,49 +39,68 @@ lib.callback.register('bryan_mazebank_garage:server:doesGarageHaveEmptySpots', f
     return GetFreeSpotInGarage(source) ~= false
 end)
 
-lib.callback.register('bryan_mazebank_garage:server:getGarageVehicles', function(source, id)
-    if garageInstances[id] then return garageInstances[id] end
-    
-    local identifier = _GetPlayerIdentifier(id)
-    if not identifier then return {} end
+lib.callback.register('bryan_mazebank_garage:server:getCurrentGarageVehicles', function(source)
+    local garage = GetGaragePlayerIsIn(_GetPlayerIdentifier(source))
 
-    local result = MySQL.query.await('SELECT * FROM bryan_garage_vehicles WHERE identifier = ?', { identifier })
-    garageInstances[id] = {}
+    if not garage then return {} end
 
-    if result then
-        for k, v in ipairs(result) do
-            table.insert(garageInstances[id], {
-                model = v.name,
-                plate = v.plate,
-                props = json.encode(v.properties),
-                slot = v.slot,
-            })
+    if not garage.GetVehicles() then
+        local result = MySQL.query.await('SELECT * FROM bryan_garage_vehicles WHERE identifier = ?', { garage.owner })
+
+        if result then
+            local vehicles = {}
+
+            for k, v in ipairs(result) do
+                table.insert(vehicles, {
+                    model = v.name,
+                    plate = v.plate,
+                    props = json.decode(v.properties),
+                    slot = v.slot,
+                })
+            end
+
+            garage.SetVehicles(vehicles)
         end
     end
 
-    return garageInstances[id]
+    return garage.GetVehicles()
 end)
 
 lib.callback.register('bryan_mazebank_garage:server:isGarageOwner', function(source)
-    local id = GetInWhatGarage(source)
+    local identifier = _GetPlayerIdentifier(source)
+    local garage = GetGaragePlayerIsIn(identifier)
 
-    return source == id
+    if not garage then return false end
+
+    return garage.owner == identifier
 end)
 
 lib.callback.register('bryan_mazebank_garage:server:getVisitorCount', function(source)
-    return GetVisitorCount(source)
+    local garage = GetGaragePlayerIsIn(_GetPlayerIdentifier(source))
+
+    return garage.GetVisitorCount()
 end)
 
 lib.callback.register('bryan_mazebank_garage:server:getVisitors', function(source)
-    return GetVisitors(source)
+    local garage = GetGaragePlayerIsIn(_GetPlayerIdentifier(source))
+
+    return garage.GetVisitors()
 end)
 
 lib.callback.register('bryan_mazebank_garage:server:getRequestCount', function(source)
-    return #requests[source]
+    local garage = GetGaragePlayerIsIn(_GetPlayerIdentifier(source))
+
+    return garage.GetRequestCount()
 end)
 
 lib.callback.register('bryan_mazebank_garage:server:getRequests', function(source)
-    return GetRequests(source)
+    local garage = GetGaragePlayerIsIn(_GetPlayerIdentifier(source))
+
+    return garage.GetRequests()
+end)
+
+lib.callback.register('bryan_mazebank_garage:server:getGarageId', function(source)
+    return GetGaragePlayerIsIn(_GetPlayerIdentifier(source)).id
 end)
 
 -- TODO Replace garage instances from identifiers to sources
@@ -353,18 +123,16 @@ RegisterNetEvent('bryan_mazebank_garage:server:requestToEnter', function(id)
     end
 end)
 
-RegisterNetEvent('bryan_mazebank_garage:server:enterVehicle', function(plate, props, name)
-    local xPlayer = ESX.GetPlayerFromId(source)
-    local freeSpot = GetFreeSpotInGarage(source)
-
+RegisterNetEvent('bryan_mazebank_garage:server:enterVehicle', function(plate, props)
+    local _source = source
+    local freeSpot = GetFreeSpotInGarage(_source)
+    
     if freeSpot then
-        if garageInstances[source] then garageInstances[source] = nil end
-
-        MySQL.insert.await('INSERT INTO bryan_garage_vehicles (identifier, name, plate, properties, slot) VALUES (?, ?, ?, ?, ?)', {
-            _GetPlayerIdentifier(source), name, plate, json.encode(props), freeSpot
+        MySQL.insert.await('INSERT INTO bryan_garage_vehicles (identifier, plate, properties, slot) VALUES (?, ?, ?, ?)', {
+            _GetPlayerIdentifier(_source), plate, json.encode(props), freeSpot
         })
-
-        _UpdateOwnedVehicleTable(source, plate, true)
+        
+        _UpdateOwnedVehicleTable(_source, plate, true)
     end
 end)
 
@@ -374,69 +142,66 @@ RegisterNetEvent('bryan_mazebank_garage:server:exitVehicle', function(plate)
     _UpdateOwnedVehicleTable(source, plate, false)
 end)
 
-RegisterNetEvent('bryan_mazebank_garage:server:enterGarage', function(id)
-    if not playerInstances[id] then playerInstances[id] = {} end
-    table.insert(playerInstances[id], source)
+RegisterNetEvent('bryan_mazebank_garage:server:enterGarage', function(visitId)
+    local identifier = _GetPlayerIdentifier(source)
+    local garage = visitId and GetGarageById(visitId) or GetGarageByOwner(identifier)
 
-    SetPlayerRoutingBucket(source, id)
+    if garage then
+        garage.AddVisitor(identifier)
 
-    TriggerClientEvent('bryan_mazebank_garage:clearRequested', source)
-    TriggerClientEvent('bryan_mazebank_garage:removeRequest', -1, _GetPlayerIdentifier(source))
+        SetPlayerRoutingBucket(source, garage.id)
+        ClearPlayerRequestsToGarages(identifier)
+    end
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:server:exitGarage', function()
-    local id = GetInWhatGarage(source)
+    local identifier = _GetPlayerIdentifier(source)
+    local garage = GetGaragePlayerIsIn(identifier)
 
-    if id then
-        RemovePlayerInstance(source, id)
-
-        if GetVisitorCount(id) < 0 then DeleteGarage(id) end
+    if garage then
+        garage.RemoveVisitor(identifier)
 
         SetPlayerRoutingBucket(source, 0)
     end
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:server:kickFromGarage', function(data)
-    TriggerClientEvent('bryan_mazebank_garage:exitGarage', data.source)
+    TriggerClientEvent('bryan_mazebank_garage:client:exitGarage', data.source)
 end)
 
-RegisterNetEvent('bryan_mazebank_garage:server:updateVehiclePosition', function(plate, slot, update)
-    MySQL.update.await('UPDATE bryan_garage_vehicles SET slot = ? WHERE plate = ?', { slot, plate })
+RegisterNetEvent('bryan_mazebank_garage:server:updateVehiclePosition', function(data1, data2)
+    local garage = GetGaragePlayerIsIn(_GetPlayerIdentifier(source))
 
-    if update then
-        if garageInstances[source] then garageInstances[source] = nil end
+    garage.UpdateVehicleSlot(data1.plate, data1.slot)
+    MySQL.update.await('UPDATE bryan_garage_vehicles SET slot = ? WHERE plate = ?', { data1.slot, data1.plate })
 
-        for k, v in ipairs(playerInstances[source]) do
-            TriggerClientEvent('bryan_mazebank_garage:forceUpdateVehicles', v, source)
-        end
+    if data2 then
+        garage.UpdateVehicleSlot(data2.plate, data2.slot)
+        MySQL.update.await('UPDATE bryan_garage_vehicles SET slot = ? WHERE plate = ?', { data2.slot, data2.plate })
     end
+
+    garage.UpdateVisitorsVehicles()
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:server:forceExitVisitors', function()
-    for k, v in pairs(playerInstances[source]) do
-        if v ~= source then
-            TriggerClientEvent('bryan_mazebank_garage:exitGarage', v)
-        end
+    local garage = GetGaragePlayerIsIn(_GetPlayerIdentifier(source))
+
+    for k, v in ipairs(garage.GetVisitors()) do
+        TriggerClientEvent('bryan_mazebank_garage:client:exitGarage', v)
     end
 end)
 
-GetFreeSpotInGarage = function(id)
-    local result = MySQL.query.await('SELECT floor, slot FROM bryan_garage_vehicles WHERE identifier = ?', { _GetPlayerIdentifier(id) })
+RegisterNetEvent('bryan_mazebank_garage:server:acceptRequest', function(data)
+    local garage = GetGaragePlayerIsIn(source)
 
-    if result then
-        for i = 1, 15 do
-            if not IsGarageSpotOccupied(result, i) then
-                return i
-            end
-        end
-    end
+    TriggerClientEvent('bryan_mazebank_garage:client:visitGarage', data.source, garage.id)
+end)
 
-    return false
-end
+IsPlayerGarageOwner = function(source)
+    local identifier = _GetPlayerIdentifier(source)
 
-IsGarageSpotOccupied = function(occupiedSlots, slot)
-    for k, v in ipairs(occupiedSlots) do
-        if v.slot == slot then
+    for k, v in ipairs(Garages) do
+        if v.IsOwner(identifier) then
             return true
         end
     end

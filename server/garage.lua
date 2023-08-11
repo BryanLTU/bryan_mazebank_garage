@@ -108,7 +108,7 @@ CreateGarageInstance = function(id, owner)
         for k, v in ipairs(self.visitors) do
             local playerId = _GetPlayerId(v)
 
-            TriggerClientEvent('bryan_mazebank_garage:forceUpdateVehicles', playerId)
+            TriggerClientEvent('bryan_mazebank_garage:client:forceUpdateVehicles', playerId)
         end
     end
 
