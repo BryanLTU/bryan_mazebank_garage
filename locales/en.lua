@@ -42,6 +42,6 @@ Locales['en'] = {
     ['alert_enter'] = '[E] - Enter Mazebank Garage',
     ['alert_entervh'] = '[E] - Drive in Mazebank Garage',
     ['alert_exit'] = '[E] - Manage Garage',
-    ['alert_unlock'] = 'Press [~b~E~s~] To ~g~Unlock~s~ Vehicle',
-    ['alert_lock'] = 'Press [~b~E~s~] To ~r~Lock~s~ Vehicle',
+    ['alert_unlock'] = '[E] - Unlock Vehicle',
+    ['alert_lock'] = '[E] - Lock Vehicle',
 }

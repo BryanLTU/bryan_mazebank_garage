@@ -315,34 +315,41 @@ SpawnGarage = function()
 end
 
 DisplayUnlockText = function()
+    local closeVehicle
+    local isUIOpen = false
+
     while isInGarage do
         local sleep = true
         local coords = GetEntityCoords(PlayerPedId())
 
-        for k, v in pairs(garage) do
-            if v.entity then
-                local doorPos = GetWorldPositionOfEntityBone(v.entity, GetEntityBoneIndexByName(v.entity, 'door_dside_f'))
+        for k, v in ipairs(garageVehicles) do
+            local doorCoords = GetWorldPositionOfEntityBone(v.entity, GetEntityBoneIndexByName(v.entity, 'door_dside_f'))
 
-                if GetDistanceBetweenCoords(coords, doorPos, true) <= 1.0 then
-                    sleep = false
-
-                    if GetVehicleDoorLockStatus(v.entity) == 2 then
-                        ESX.Game.Utils.DrawText3D(doorPos, _U('alert_unlock'), 1.0, 8)
-
-                        if IsControlJustPressed(1, 51) then
-                            Citizen.Wait(500)
-                            SetVehicleDoorsLocked(v.entity, 1)
-                        end
-                    else
-                        ESX.Game.Utils.DrawText3D(doorPos, _U('alert_lock'), 1.0, 8)
-
-                        if IsControlJustPressed(1, 51) then
-                            Citizen.Wait(500)
-                            SetVehicleDoorsLocked(v.entity, 2)
-                        end
-                    end
-                end
+            if not closeVehicle and v.entity and #(coords - doorCoords) < 1.5 then
+                closeVehicle = v.entity
+            elseif closeVehicle and #(coords - doorCoords) > 1.5 then
+                closeVehicle = nil
             end
+        end
+
+        if closeVehicle then
+            local isLocked = GetVehicleDoorLockStatus(closeVehicle) == 2
+            local text = isLocked and _U('alert_unlock') or _U('alert_lock')
+            sleep = false
+
+            if not isUIOpen then
+                isUIOpen = true
+                lib.showTextUI(text)
+            end
+
+            if IsControlJustReleased(1, 51) then
+                SetVehicleDoorsLocked(closeVehicle, isLocked and 1 or 2)
+                isUIOpen = false
+            end
+
+        elseif isUIOpen then
+            isUIOpen = false
+            lib.hideTextUI()
         end
 
         if sleep then Citizen.Wait(100) end
