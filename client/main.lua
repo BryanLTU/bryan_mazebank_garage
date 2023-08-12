@@ -413,7 +413,7 @@ GarageManagment = function()
 
     lib.registerContext({
         id = 'bryan_mazebank_garage:managment',
-        title = _U('menu_title_id', garageId),
+        title = isGarageOwner and _U('menu_title_id', garageId) or _U('menu_title'),
         options = options
     })
 
