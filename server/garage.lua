@@ -3,7 +3,7 @@ CreateGarageInstance = function(id, owner)
 
     self.id         = id
     self.owner      = owner
-    self.vehicles   = nil
+    self.vehicles   = {}
     self.visitors   = {}
     self.requests   = {}
 
@@ -86,13 +86,22 @@ CreateGarageInstance = function(id, owner)
     self.GetRequests = function()
         return self.requests
     end
-    
-    self.SetVehicles = function(vehicles)
-        self.vehicles = vehicles
-    end
 
     self.GetVehicles = function()
-        return self.vehicles
+        local vehicles = {}
+        local result = MySQL.query.await('SELECT plate, properties, slot FROM bryan_garage_vehicles WHERE identifier = ?', { self.owner })
+
+        if result then
+            for k, v in ipairs(result) do
+                table.insert(vehicles, {
+                    plate = v.plate,
+                    props = json.decode(v.properties),
+                    slot = v.slot
+                })
+            end
+        end
+
+        return vehicles
     end
 
     self.UpdateVehicleSlot = function(plate, slot)

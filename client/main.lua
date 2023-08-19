@@ -205,6 +205,7 @@ EnterGarage = function(vehicle)
         local props = _GetVehicleProperties(vehicle)
         TriggerServerEvent('bryan_mazebank_garage:server:enterVehicle', props.plate, props)
         _DeleteVehicle(vehicle)
+        Citizen.Wait(200)
     end
 
     isInGarage = true
@@ -263,11 +264,15 @@ ExitGarage = function(data)
     Citizen.Wait(200)
 
     local ped = PlayerPedId()
+    TriggerServerEvent('bryan_mazebank_garage:server:exitGarage')
+    Citizen.Wait(200)
+
     if data.door and data.door == 'elevator' then
         if data.vehicle then
+            local props = ESX.Game.GetVehicleProperties(data.vehicle)
+
             SetEntityCoords(ped, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, 0.0, 0.0, 0.0, false)
             
-            local props = ESX.Game.GetVehicleProperties(data.vehicle)
             local localVehicle = _SpawnVehicle(props.model, vector3(Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z), Config.Locations.EnterVh.w)
             _SetVehicleProperties(localVehicle, props)
             TaskWarpPedIntoVehicle(ped, localVehicle, -1)
@@ -282,7 +287,6 @@ ExitGarage = function(data)
 
     isInGarage = false
     ClearGarage()
-    TriggerServerEvent('bryan_mazebank_garage:server:exitGarage')
 
     DoScreenFadeIn(200)
 end
@@ -299,6 +303,7 @@ SpawnGarage = function()
         _SetVehicleProperties(localVehicle, v.props)
         SetVehicleDoorsLocked(localVehicle, 2)
         SetEntityInvincible(localVehicle, true)
+        FreezeEntityPosition(localVehicle, true)
 
         table.insert(garageVehicles, {
             entity = localVehicle,

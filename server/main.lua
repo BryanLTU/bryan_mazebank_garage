@@ -44,25 +44,6 @@ lib.callback.register('bryan_mazebank_garage:server:getCurrentGarageVehicles', f
 
     if not garage then return {} end
 
-    if not garage.GetVehicles() then
-        local result = MySQL.query.await('SELECT * FROM bryan_garage_vehicles WHERE identifier = ?', { garage.owner })
-
-        if result then
-            local vehicles = {}
-
-            for k, v in ipairs(result) do
-                table.insert(vehicles, {
-                    model = v.name,
-                    plate = v.plate,
-                    props = json.decode(v.properties),
-                    slot = v.slot,
-                })
-            end
-
-            garage.SetVehicles(vehicles)
-        end
-    end
-
     return garage.GetVehicles()
 end)
 
@@ -279,5 +260,4 @@ IsSpotFree = function(floor, slot, table)
 
     return true
 end
-
 -- TODO ON PLAYER LEAVE!
