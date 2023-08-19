@@ -332,12 +332,13 @@ DisplayUnlockText = function()
 
             if not closeVehicle and v.entity and #(coords - doorCoords) < 1.5 then
                 closeVehicle = v.entity
+                break
             elseif closeVehicle and #(coords - doorCoords) > 1.5 then
                 closeVehicle = nil
             end
         end
 
-        if closeVehicle then
+        if closeVehicle and not IsPedInAnyVehicle(PlayerPedId(), false) then
             local isLocked = GetVehicleDoorLockStatus(closeVehicle) == 2
             local text = isLocked and _U('alert_unlock') or _U('alert_lock')
             sleep = false
@@ -362,22 +363,25 @@ DisplayUnlockText = function()
     end
 end
 
+-- TODO fix drive exit
 OnDriveExit = function()
     while isInGarage do
-        local wait = 500
+        local sleep = true
         local ped = PlayerPedId()
 
         if IsPedInAnyVehicle(ped, false) then
             local vehicle = GetVehiclePedIsIn(ped, false)
-            wait = 5
+            local throttle = GetVehicleThrottleOffset(vehicle)
+            sleep = false
             
-            if GetEntitySpeed(vehicle) * 3.6 > 2.0 then
+            if throttle >= 0.5 or throttle <= -0.5  then
                 ExitGarage({ door = 'elevator', vehicle = vehicle })
                 return
             end
         end
 
-        Citizen.Wait(wait)
+        if sleep then Citizen.Wait(500) end
+        Citizen.Wait(1)
     end
 end
 
