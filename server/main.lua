@@ -4,11 +4,8 @@ MySQL.ready(function()
     local result = MySQL.query.await('SELECT identifier FROM bryan_garage_owners')
 
     if result then
-        local currentId = 0
-
         for k, v in ipairs(result) do
-            currentId = currentId + 1
-            table.insert(Garages, CreateGarageInstance(currentId, v.identifier))
+            table.insert(Garages, CreateGarageInstance(k, v.identifier))
         end
     end
 end)
