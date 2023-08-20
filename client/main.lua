@@ -270,7 +270,7 @@ ExitGarage = function(data)
 
     if data.door and data.door == 'elevator' then
         if data.vehicle then
-            local props = ESX.Game.GetVehicleProperties(data.vehicle)
+            local props = _GetVehicleProperties(data.vehicle)
 
             SetEntityCoords(ped, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, 0.0, 0.0, 0.0, false)
             
