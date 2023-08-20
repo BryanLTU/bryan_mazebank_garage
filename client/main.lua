@@ -303,7 +303,6 @@ SpawnGarage = function()
         _SetVehicleProperties(localVehicle, v.props)
         SetVehicleDoorsLocked(localVehicle, 2)
         SetEntityInvincible(localVehicle, true)
-        FreezeEntityPosition(localVehicle, true)
 
         table.insert(garageVehicles, {
             entity = localVehicle,
@@ -333,7 +332,7 @@ DisplayUnlockText = function()
             if not closeVehicle and v.entity and #(coords - doorCoords) < 1.5 then
                 closeVehicle = v.entity
                 break
-            elseif closeVehicle and #(coords - doorCoords) > 1.5 then
+            elseif closeVehicle and closeVehicle == v.entity and #(coords - doorCoords) > 1.5 then
                 closeVehicle = nil
             end
         end
