@@ -6,13 +6,23 @@ local currPlayers = {}
 local garageVehicles = {}
 local isInGarage, isInMagment = false, false
 
-RegisterNetEvent('esx:playerLoaded', function()
-    if not Config.DebugMode then
-        RegisterContextMenus()
-        RefreshGarageBlip()
-        Citizen.CreateThread(StartMarkers)
-    end
-end)
+if Config.DebugMode then
+    Citizen.CreateThread(function()
+        StartScript()
+    end)
+else
+    RegisterNetEvent('esx:playerLoaded', function()
+        StartScript()
+    end)
+end
+
+StartScript = function()
+    RegisterContextMenus()
+    RefreshGarageBlip()
+    Citizen.CreateThread(StartMarkers)
+
+    if Config.UseTarget then RegisterTarget() end
+end
 
 RefreshGarageBlip = function()
     local doesOwnGarage = lib.callback.await('bryan_mazebank_garage:server:doesOwnGarage', false)
