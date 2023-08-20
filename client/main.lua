@@ -350,6 +350,7 @@ DisplayUnlockText = function()
 
             if IsControlJustReleased(1, 51) then
                 SetVehicleDoorsLocked(closeVehicle, isLocked and 1 or 2)
+                VehicleLockAnimation(closeVehicle)
                 isUIOpen = false
             end
 
@@ -543,6 +544,21 @@ GetVehicleFromSlot = function(slot)
     end
 
     return nil
+end
+
+VehicleLockAnimation = function(vehicle)
+    local dict = "anim@mp_player_intmenu@key_fob@"
+    RequestAnimDict(dict)
+    while not HasAnimDictLoaded(dict) do
+        Citizen.Wait(0)
+    end
+
+    PlaySoundFrontend(-1, "BUTTON", "MP_PROPERTIES_ELEVATOR_DOORS", 1)
+    TaskPlayAnim(PlayerPedId(), dict, "fob_click_fp", 8.0, 8.0, -1, 48, 1, false, false, false)
+    SetVehicleLights(vehicle, 2); Citizen.Wait(200)
+    SetVehicleLights(vehicle, 0); Citizen.Wait(200)
+    SetVehicleLights(vehicle, 2); Citizen.Wait(200)
+    SetVehicleLights(vehicle, 0); Citizen.Wait(200)
 end
 
 RegisterNetEvent('bryan_mazebank_garage:client:exitGarage', ExitGarage)
