@@ -78,7 +78,11 @@ lib.callback.register('bryan_mazebank_garage:server:getRequests', function(sourc
 end)
 
 lib.callback.register('bryan_mazebank_garage:server:getGarageId', function(source)
-    return GetGaragePlayerIsIn(_GetPlayerIdentifier(source)).id
+    local garage = GetGaragePlayerIsIn(_GetPlayerIdentifier(source))
+
+    if garage then return garage.id end
+    
+    return nil
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:server:requestToEnter', function(id)
