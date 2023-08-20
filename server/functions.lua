@@ -1,5 +1,9 @@
 ESX = exports['es_extended']:getSharedObject()
 
+RegisterNetEvent('esx:playerDropped', function(playerId, reason)
+    OnPlayerLeave(_GetPlayerIdentifier(playerId), playerId)
+end)
+
 _Notification = function(source, msg)
     TriggerClientEvent('ox_lib:notify', source, {
         title = _U('menu_title'),
@@ -38,5 +42,3 @@ _UpdateOwnedVehicleTable = function(source, plate, stored)
         })
     end
 end
-
--- TODO On Player exit if inside garage, set last coords to outside

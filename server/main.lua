@@ -161,11 +161,7 @@ RegisterNetEvent('bryan_mazebank_garage:server:updateVehiclePosition', function(
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:server:forceExitVisitors', function()
-    local garage = GetGaragePlayerIsIn(_GetPlayerIdentifier(source))
-
-    for k, v in ipairs(garage.GetVisitors()) do
-        TriggerClientEvent('bryan_mazebank_garage:client:exitGarage', v)
-    end
+    ForceKickVisitors(source)
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:server:acceptRequest', function(data)
@@ -256,4 +252,23 @@ IsSpotFree = function(floor, slot, table)
 
     return true
 end
--- TODO ON PLAYER LEAVE!
+
+OnPlayerLeave = function(identifier, playerId)
+    local garage = GetGaragePlayerIsIn(identifier)
+
+    if garage then
+        ForceKickVisitors(playerId)
+        garage.RemoveVisitor(identifier)
+        SetEntityCoords(GetPlayerPed(playerId), Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z, false, false, false, false)
+    end
+end
+
+ForceKickVisitors = function(source)
+    local garage = GetGaragePlayerIsIn(_GetPlayerIdentifier(source))
+
+    if garage then
+        for k, v in ipairs(garage.GetVisitors()) do
+            TriggerClientEvent('bryan_mazebank_garage:client:exitGarage', v)
+        end
+    end
+end
