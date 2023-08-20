@@ -81,7 +81,6 @@ lib.callback.register('bryan_mazebank_garage:server:getGarageId', function(sourc
     return GetGaragePlayerIsIn(_GetPlayerIdentifier(source)).id
 end)
 
--- TODO Replace garage instances from identifiers to sources
 RegisterNetEvent('bryan_mazebank_garage:server:requestToEnter', function(id)
     if not DoesGrarageInstanceExist(id) then
         _Notification(source, _U('notification_invite_instance_does_not_exist'))

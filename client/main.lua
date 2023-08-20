@@ -364,7 +364,6 @@ DisplayUnlockText = function()
     end
 end
 
--- TODO fix drive exit
 OnDriveExit = function()
     while isInGarage do
         local sleep = true
