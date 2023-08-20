@@ -2,16 +2,18 @@ Config = {}
 
 Config.Locale = 'en'
 
-Config.DebugMode = false
+-- TODO Desable debug
+Config.DebugMode = true
 
 Config.Price     = 15000
 Config.MaxFloors = 3
 Config.CheckOwnership = false
+Config.UseTarget = true
 
 Config.Locations = {
-    Enter            = vector4(-70.87, -799.26, 43.32, 181.40),
+    Enter            = vector4(-71.06, -800.99, 44.93, 181.40),
     EnterVh          = vector4(-84.11, -821.25, 35.13, 351.15),
-    Exit             = vector4(-88.79834, -822.3201, 221.1, -147.027237),
+    Exit             = vector4(-91.2, -821.31, 222.0, 240.40),
     
     VehicleElevator  = vector4(-76.89, -829.58, 221.11, 0.0),
 
@@ -52,8 +54,6 @@ Config.Blips = {
 }
 
 Config.Markers = {
-    Enable = true,
-
     ['Enter'] = {
         Type = 1,
         Scale = { x = 1.0, y = 1.0, z = 1.0 },

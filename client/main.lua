@@ -49,6 +49,39 @@ AddBlip = function(type)
     end
 end
 
+RegisterTarget = function()
+    exports.ox_target:addSphereZone({
+        coords = Config.Locations.Enter,
+        radius = 1.5,
+        drawSprite = true,
+        options = {
+            {
+                label = _U('menu_title'),
+                name = 'enter',
+                distance = 1.5,
+                onSelect = function(data)
+                    PressedControl('Enter')
+                end
+            },
+        }
+    })
+    exports.ox_target:addSphereZone({
+        coords = Config.Locations.Exit,
+        radius = 1.5,
+        drawSprite = true,
+        options = {
+            {
+                label = _U('manage_garage'),
+                name = 'exit',
+                distance = 1.5,
+                onSelect = function(data)
+                    PressedControl('Exit')
+                end
+            },
+        }
+    })
+end
+
 StartMarkers = function()
     local isUIOpen = false
 
@@ -58,15 +91,15 @@ StartMarkers = function()
         local coords = GetEntityCoords(ped)
         local positionType
 
-        if GetDistanceBetweenCoords(coords, Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z, true) <= 10.0 then
+        if not Config.UseTarget and GetDistanceBetweenCoords(coords, Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z, true) <= 10.0 then
             positionType = 'Enter'
         elseif IsPedInAnyVehicle(ped, false) and GetDistanceBetweenCoords(coords, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, true) <= 10.0 then
             positionType = 'EnterVh'
-        elseif GetDistanceBetweenCoords(coords, Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z, true) <= 10.0 then
+        elseif not Config.UseTarget and GetDistanceBetweenCoords(coords, Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z, true) <= 10.0 then
             positionType = 'Exit'
         end
 
-        if Config.Markers.Enable and positionType then
+        if positionType then
             sleep = false
             DrawMarker(Config.Markers[positionType].Type, Config.Locations[positionType].x, Config.Locations[positionType].y, Config.Locations[positionType].z, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Config.Markers[positionType].Scale.x, Config.Markers[positionType].Scale.y, Config.Markers[positionType].Scale.z, Config.Markers[positionType].Colour.r, Config.Markers[positionType].Colour.g, Config.Markers[positionType].Colour.b, Config.Markers[positionType].Colour.a, false, false, 2, Config.Markers[positionType].Rotate, nil, nil, false)
         end
