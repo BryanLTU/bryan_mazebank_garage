@@ -12,6 +12,8 @@ Config.Locations = {
     Enter            = vector4(-70.87, -799.26, 43.32, 181.40),
     EnterVh          = vector4(-84.11, -821.25, 35.13, 351.15),
     Exit             = vector4(-88.79834, -822.3201, 221.1, -147.027237),
+    
+    VehicleElevator  = vector4(-76.89, -829.58, 221.11, 0.0),
 
     VehicleLocations = {
         [1] = vector4(-85.24082,      -818.235535,    220.23494,  -144.433289),
