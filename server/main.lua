@@ -132,6 +132,10 @@ RegisterNetEvent('bryan_mazebank_garage:server:enterGarage', function(visitId)
 
         SetPlayerRoutingBucket(source, garage.id)
         ClearPlayerRequestsToGarages(identifier)
+
+        if not garage.AreVehiclesSpawned() then
+            garage.SpawnVehicles()
+        end
     end
 end)
 
@@ -141,6 +145,9 @@ RegisterNetEvent('bryan_mazebank_garage:server:exitGarage', function()
 
     if garage then
         garage.RemoveVisitor(identifier)
+        if not self.DoesHaveVisitors() then
+            garage.DeleteVehicles()
+        end
 
         SetPlayerRoutingBucket(source, 0)
     end

@@ -1,11 +1,12 @@
 CreateGarageInstance = function(id, owner)
     self = {}
 
-    self.id         = id
-    self.owner      = owner
-    self.vehicles   = {}
-    self.visitors   = {}
-    self.requests   = {}
+    self.id                 = id
+    self.owner              = owner
+    self.vehicles           = {}
+    self.visitors           = {}
+    self.requests           = {}
+    self.vehiclesSpawned    = false
 
     self.AddVisitor = function(identifier)
         table.insert(self.visitors, identifier)
@@ -53,6 +54,10 @@ CreateGarageInstance = function(id, owner)
         return false
     end
 
+    self.DoesHaveVisitors = function()
+        return #self.visitors ~= 0
+    end
+
     self.RemoveRequest = function(identifier)
         for k, v in ipairs(self.requests) do
             if v == identifier then
@@ -87,6 +92,45 @@ CreateGarageInstance = function(id, owner)
         return self.requests
     end
 
+    self.SpawnVehicles = function()
+        local result = MySQL.query.await('SELECT plate, properties, slot FROM bryan_garage_vehicles WHERE identifier = ?', { self.owner })
+
+        if result then
+            for k, v in ipairs(result) do
+                local plate, props, slot, coords = v.plate, json.decode(v.properties), v.slot, Config.Locations.VehicleLocations[v.slot]
+
+                local vehicle = CreateVehicle(props.model, coords.x, coords.y, coords.z, coords.w, true, false)
+                while not DoesEntityExist(vehicle) do Citizen.Wait(10) end
+
+                SetEntityRoutingBucket(vehicle, self.id)
+
+                table.insert(self.vehicles, {
+                    plate = v.plate,
+                    props = props,
+                    slot = slot,
+                    entity = vehicle,
+                })
+            end
+        end
+
+        self.vehiclesSpawned = true
+    end
+
+    self.DeleteVehicles = function()
+        for k, v in ipairs(self.vehicles) do
+            if v.entity then
+                DeleteEntity(v.entity)
+            end
+        end
+
+        self.vehicles = {}
+        self.vehiclesSpawned = false
+    end
+
+    self.AreVehiclesSpawned = function()
+        return self.vehiclesSpawned
+    end
+
     self.GetVehicles = function()
         local vehicles = {}
         local result = MySQL.query.await('SELECT plate, properties, slot FROM bryan_garage_vehicles WHERE identifier = ?', { self.owner })
@@ -110,6 +154,12 @@ CreateGarageInstance = function(id, owner)
                 self.vehicles[k].slot = slot
                 break
             end
+        end
+    end
+
+    self.UpdateVehicleEntity = function(plate)
+        for k, v in ipairs(self.vehicles) do
+
         end
     end
 

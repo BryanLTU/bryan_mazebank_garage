@@ -256,8 +256,6 @@ EnterGarage = function(vehicle)
     SetEntityCoords(PlayerPedId(), Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z, 0.0, 0.0, 0.0, false)
     TriggerServerEvent('bryan_mazebank_garage:server:enterGarage')
 
-    SpawnGarage()
-
     DoScreenFadeIn(200)
 end
 
@@ -276,8 +274,6 @@ VisitGarage = function(id)
     isInGarage = true
     SetEntityCoords(PlayerPedId(), Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z, 0.0, 0.0, 0.0, false)
     TriggerServerEvent('bryan_mazebank_garage:server:enterGarage', id)
-
-    SpawnGarage()
 
     DoScreenFadeIn(200)
 end
