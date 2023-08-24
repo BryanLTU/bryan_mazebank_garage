@@ -12,7 +12,7 @@ Config.UseTarget = true
 
 Config.Locations = {
     Enter            = vector4(-71.06, -800.99, 44.93, 181.40),
-    EnterVh          = vector4(-84.11, -821.25, 35.13, 351.15),
+    EnterVh          = vector4(-84.11, -821.25, 35.63, 351.15),
     Exit             = vector4(-91.2, -821.31, 222.0, 240.40),
     
     VehicleElevator  = vector4(-76.89, -829.58, 221.11, 0.0),
@@ -61,8 +61,8 @@ Config.Markers = {
         Rotate = true
     },
     ['EnterVh'] = {
-        Type = 1,
-        Scale = { x = 4.0, y = 4.0, z = 1.0 },
+        Type = 2,
+        Scale = { x = 1.0, y = 1.0, z = 1.0 },
         Colour = { r = 0, g = 255, b = 255, a = 255 },
         Rotate = true
     },
@@ -71,5 +71,17 @@ Config.Markers = {
         Scale = { x = 1.0, y = 1.0, z = 1.0 },
         Colour = { r = 255, g = 0, b = 0, a = 255 },
         Rotate = true
-    }
+    },
+    ['SelectVehicle'] = {
+        Type = 0,
+        Scale = { x = 0.5, y = 0.5, z = 0.5 },
+        Colour = { r = 50, g = 255, b = 50, a = 150 },
+        Rotate = false,
+    },
+    ['SelectSlot'] = {
+        Type = 0,
+        Scale = { x = 0.5, y = 0.5, z = 0.5 },
+        Colour = { r = 200, g = 150, b = 50, a = 150 },
+        Rotate = false,
+    },
 }

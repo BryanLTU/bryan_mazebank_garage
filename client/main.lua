@@ -496,11 +496,11 @@ StartVehicleManager = function()
         local message = string.format('%s\n%s\n%s\n%s',
                                 selectedVehicle == nil and _U('alert_vehicle_managment_select_vehicle') or _U('alert_vehicle_managment_select_spot'),
                                 _U('alert_vehicle_managment_position'), _U('alert_vehicle_managment_confirm'), _U('alert_vehicle_managment_cancel'))
-        local markerColor = selectedVehicle == nil and { r = 255, g = 50, b = 50 } or { r = 50, g = 255, b = 50 }
+        local markerOptions = selectedVehicle == nil and Config.Markers['SelectVehicle'] or Config.Markers['SelectSlot']
 
         _ShowHelpNotification(message)
 
-        DrawMarker(0, Config.Locations.VehicleLocations[currentSlot].x, Config.Locations.VehicleLocations[currentSlot].y, Config.Locations.VehicleLocations[currentSlot].z + 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, markerColor.r, markerColor.g, markerColor.b, 150, true, false, 2, false, nil, nil, false)
+        DrawMarker(0, Config.Locations.VehicleLocations[currentSlot].x, Config.Locations.VehicleLocations[currentSlot].y, Config.Locations.VehicleLocations[currentSlot].z + 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, markerOptions.Scale.x, markerOptions.Scale.y, markerOptions.Scale.z, markerOptions.Colour.r, markerOptions.Colour.g, markerOptions.Colour.b, 150, false, false, 2, markerOptions.Rotate, nil, nil, false)
 
         if IsControlJustReleased(1, 174) then
             currentSlot = GetPreviousSlotInGarage(currentSlot, selectedVehicle == nil)
