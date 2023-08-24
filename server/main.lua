@@ -276,3 +276,6 @@ ForceKickVisitors = function(source)
         end
     end
 end
+
+-- TODO make vehicles networked so it syncs across all players
+-- TODO change "slot" to "spot"
