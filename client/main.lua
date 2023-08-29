@@ -279,6 +279,7 @@ VisitGarage = function(id)
 end
 
 ExitGarage = function(data)
+    local vehicleData = data.plate and lib.callback.await('bryan_mazebank_garage:server:getGarageVehicle', false, data.plate) or nil
     local isGarageOwner = lib.callback.await('bryan_mazebank_garage:server:isGarageOwner', false)
     
     if isGarageOwner then
@@ -303,21 +304,20 @@ ExitGarage = function(data)
     DoScreenFadeOut(200)
     Citizen.Wait(200)
 
-    local ped = PlayerPedId()
     TriggerServerEvent('bryan_mazebank_garage:server:exitGarage')
     Citizen.Wait(200)
 
-    if data.door and data.door == 'elevator' then
-        if data.vehicle then
-            local props = _GetVehicleProperties(data.vehicle)
+    local ped = PlayerPedId()
 
+    if data.door and data.door == 'elevator' then
+        if data.plate then
             SetEntityCoords(ped, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, 0.0, 0.0, 0.0, false)
             
-            local localVehicle = _SpawnVehicle(props.model, vector3(Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z), Config.Locations.EnterVh.w)
-            _SetVehicleProperties(localVehicle, props)
+            local localVehicle = _SpawnVehicle(vehicleData.props.model, vector3(Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z), Config.Locations.EnterVh.w)
+            _SetVehicleProperties(localVehicle, vehicleData.props)
             TaskWarpPedIntoVehicle(ped, localVehicle, -1)
             
-            if props then TriggerServerEvent('bryan_mazebank_garage:server:exitVehicle', props.plate) end
+            TriggerServerEvent('bryan_mazebank_garage:server:exitVehicle', data.plate)
         else
             SetEntityCoords(ped, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, 0.0, 0.0, 0.0, false)
         end
@@ -326,53 +326,30 @@ ExitGarage = function(data)
     end
 
     isInGarage = false
-    ClearGarage()
 
+    Citizen.Wait(200)
     DoScreenFadeIn(200)
-end
-
-SpawnGarage = function()
-    local vehicles = lib.callback.await('bryan_mazebank_garage:server:getCurrentGarageVehicles', false)
-    local isGarageOwner = lib.callback.await('bryan_mazebank_garage:server:isGarageOwner', false)
-    
-    ClearGarage()
-
-    for k, v in ipairs(vehicles) do
-        local localVehicle = _SpawnLocalVehicle(v.props.model, vector3(Config.Locations.VehicleLocations[v.slot].x, Config.Locations.VehicleLocations[v.slot].y, Config.Locations.VehicleLocations[v.slot].z), Config.Locations.VehicleLocations[v.slot].w)
-
-        _SetVehicleProperties(localVehicle, v.props)
-        SetVehicleDoorsLocked(localVehicle, 2)
-        SetEntityInvincible(localVehicle, true)
-
-        table.insert(garageVehicles, {
-            entity = localVehicle,
-            plate = v.plate,
-            model = GetDisplayNameFromVehicleModel(v.props.model),
-            slot = v.slot
-        })
-
-        Citizen.Wait(5)
-    end
-
-    if isGarageOwner then Citizen.CreateThread(DisplayUnlockText); end
-    Citizen.CreateThread(OnDriveExit)
 end
 
 DisplayUnlockText = function()
     local closeVehicle
     local isUIOpen = false
+    local vehicles = {}
 
+    local data = lib.callback.await('bryan_mazebank_garage:server:getGarageVehicleEntities', false)
+    for k, v in ipairs(data) do table.insert(vehicles, NetworkGetEntityFromNetworkId(v)) end
+    
     while isInGarage do
         local sleep = true
         local coords = GetEntityCoords(PlayerPedId())
 
-        for k, v in ipairs(garageVehicles) do
-            local doorCoords = GetWorldPositionOfEntityBone(v.entity, GetEntityBoneIndexByName(v.entity, 'door_dside_f'))
+        for k, v in ipairs(vehicles) do
+            local doorCoords = GetWorldPositionOfEntityBone(v, GetEntityBoneIndexByName(v, 'door_dside_f'))
 
-            if not closeVehicle and v.entity and #(coords - doorCoords) < 1.5 then
-                closeVehicle = v.entity
+            if not closeVehicle and v and #(coords - doorCoords) < 1.5 then
+                closeVehicle = v
                 break
-            elseif closeVehicle and closeVehicle == v.entity and #(coords - doorCoords) > 1.5 then
+            elseif closeVehicle and closeVehicle == v and #(coords - doorCoords) > 1.5 then
                 closeVehicle = nil
             end
         end
@@ -414,7 +391,7 @@ OnDriveExit = function()
             sleep = false
             
             if throttle >= 0.5 or throttle <= -0.5  then
-                ExitGarage({ door = 'elevator', vehicle = vehicle })
+                ExitGarage({ door = 'elevator', plate = _GetVehicleProperties(vehicle).plate })
                 return
             end
         end
@@ -422,14 +399,6 @@ OnDriveExit = function()
         if sleep then Citizen.Wait(500) end
         Citizen.Wait(1)
     end
-end
-
-ClearGarage = function()
-    for k, v in pairs(garageVehicles) do
-        if v.entity then _DeleteVehicle(v.entity) end
-    end
-
-    garageVehicles = {}
 end
 
 RequestVehicle = function(model)
@@ -443,17 +412,18 @@ end
 GarageManagment = function()
     local isGarageOwner = lib.callback.await('bryan_mazebank_garage:server:isGarageOwner', false)
     local garageId = lib.callback.await('bryan_mazebank_garage:server:getGarageId', false)
-    local visitorCount, requestCount = 0, 0
+    local visitorCount, requestCount, vehicleCount = 0, 0, 0
 
     if isGarageOwner then
         visitorCount = lib.callback.await('bryan_mazebank_garage:server:getVisitorCount', false)
         requestCount = lib.callback.await('bryan_mazebank_garage:server:getRequestCount', false)
+        vehicleCount = #lib.callback.await('bryan_mazebank_garage:server:getGarageVehicles', false)
     end
 
     local options = isGarageOwner and {
         { title = _U('visitors'), description = _U('count', visitorCount), menu = 'bryan_mazebank_garage:visitors', disabled = visitorCount == 0 },
         { title = _U('enter_requests'), description = _U('count', requestCount), menu = 'bryan_mazebank_garage:requests', disabled = requestCount == 0 },
-        { title = _U('manage_vehicles'), disabled = #garageVehicles == 0, onSelect = StartVehicleManager },
+        { title = _U('manage_vehicles'), disabled = vehicleCount == 0, onSelect = StartVehicleManager },
         { title = _U('exit'), menu = 'bryan_mazebank_garage:exitOptions' },
     } or {
         { title = _U('exit'), menu = 'bryan_mazebank_garage:exitOptions' },
@@ -535,9 +505,10 @@ PlaceVehicleInNewSlot = function(vehicle, slot)
 end
 
 GetFirstVehicleSlotInGarage = function()
-    local minSlot = garageVehicles[1].slot
+    local vehicles = lib.callback.await('bryan_mazebank_garage:server:getGarageVehicles', false)
+    local minSlot = vehicles[1].slot
 
-    for k, v in ipairs(garageVehicles) do
+    for k, v in ipairs(vehicles) do
         if v.slot < minSlot then minSlot = v.slot end
     end
 
@@ -545,7 +516,11 @@ GetFirstVehicleSlotInGarage = function()
 end
 
 GetPreviousSlotInGarage = function(slot, checkIfVehicleExists)
-    if checkIfVehicleExists and #garageVehicles <= 1 then return slot end
+    if checkIfVehicleExists then
+        local vehicles = lib.callback.await('bryan_mazebank_garage:server:getGarageVehicles', false)
+        
+        if #vehicles <= 1 then return slot end
+    end
 
     slot = 1 == slot and #Config.Locations.VehicleLocations or slot - 1
 
@@ -555,7 +530,11 @@ GetPreviousSlotInGarage = function(slot, checkIfVehicleExists)
 end
 
 GetNextSlotInGarage = function(slot, checkIfVehicleExists)
-    if checkIfVehicleExists and #garageVehicles <= 1 then return slot end
+    if checkIfVehicleExists then
+        local vehicles = lib.callback.await('bryan_mazebank_garage:server:getGarageVehicles', false)
+        
+        if #vehicles <= 1 then return slot end
+    end
 
     slot = #Config.Locations.VehicleLocations == slot and 1 or slot + 1
 
@@ -565,7 +544,9 @@ GetNextSlotInGarage = function(slot, checkIfVehicleExists)
 end
 
 IsVehicleInSlot = function(slot)
-    for k, v in ipairs(garageVehicles) do
+    local vehicles = lib.callback.await('bryan_mazebank_garage:server:getGarageVehicles', false)
+
+    for k, v in ipairs(vehicles) do
         if v.slot == slot then
             return true
         end
@@ -575,7 +556,9 @@ IsVehicleInSlot = function(slot)
 end
 
 GetVehicleFromSlot = function(slot)
-    for k, v in ipairs(garageVehicles) do
+    local vehicles = lib.callback.await('bryan_mazebank_garage:server:getGarageVehicles', false)
+
+    for k, v in ipairs(vehicles) do
         if v.slot == slot then
             return v
         end
@@ -641,6 +624,15 @@ RegisterNetEvent('bryan_mazebank_garage:client:forceUpdateVehicles', function(id
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:client:visitGarage', VisitGarage)
+
+RegisterNetEvent('bryan_mazebank_garage:client:applyVehicleProperties', function(netId, props)
+    _SetVehicleProperties(NetworkGetEntityFromNetworkId(netId), props)
+end)
+
+RegisterNetEvent('bryan_mazebank_garage:client:ownerThreads', function()
+    Citizen.CreateThread(OnDriveExit)
+    Citizen.CreateThread(DisplayUnlockText)
+end)
 
 --[[AddEventHandler('onResourceStop', function(resourceName)
     if resourceName == GetCurrentResourceName() and currFloor ~= 0 then

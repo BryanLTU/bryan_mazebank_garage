@@ -36,12 +36,26 @@ lib.callback.register('bryan_mazebank_garage:server:doesGarageHaveEmptySpots', f
     return GetFreeSpotInGarage(source) ~= false
 end)
 
-lib.callback.register('bryan_mazebank_garage:server:getCurrentGarageVehicles', function(source)
+lib.callback.register('bryan_mazebank_garage:server:getGarageVehicles', function(source)
     local garage = GetGaragePlayerIsIn(_GetPlayerIdentifier(source))
 
     if not garage then return {} end
 
-    return garage.GetVehicles()
+    return garage.vehicles
+end)
+
+lib.callback.register('bryan_mazebank_garage:server:getGarageVehicle', function(source, plate)
+    local garage = GetGaragePlayerIsIn(_GetPlayerIdentifier(source))
+    
+    return garage.GetVehicle(plate) 
+end)
+
+lib.callback.register('bryan_mazebank_garage:server:getGarageVehicleEntities', function(source)
+    local garage = GetGaragePlayerIsIn(_GetPlayerIdentifier(source))
+
+    if not garage then return {} end
+
+    return garage.GetVehicleEntities()
 end)
 
 lib.callback.register('bryan_mazebank_garage:server:isGarageOwner', function(source)
@@ -167,8 +181,6 @@ RegisterNetEvent('bryan_mazebank_garage:server:updateVehiclePosition', function(
         garage.UpdateVehicleSlot(data2.plate, data2.slot)
         MySQL.update.await('UPDATE bryan_garage_vehicles SET slot = ? WHERE plate = ?', { data2.slot, data2.plate })
     end
-
-    garage.UpdateVisitorsVehicles()
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:server:forceExitVisitors', function()
@@ -284,5 +296,4 @@ ForceKickVisitors = function(source)
     end
 end
 
--- TODO make vehicles networked so it syncs across all players
 -- TODO change "slot" to "spot"

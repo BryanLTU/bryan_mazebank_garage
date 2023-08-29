@@ -102,7 +102,9 @@ CreateGarageInstance = function(id, owner)
                 local vehicle = CreateVehicle(props.model, coords.x, coords.y, coords.z, coords.w, true, false)
                 while not DoesEntityExist(vehicle) do Citizen.Wait(10) end
 
+                SetVehicleDoorsLocked(vehicle, 2)
                 SetEntityRoutingBucket(vehicle, self.id)
+                TriggerClientEvent('bryan_mazebank_garage:client:applyVehicleProperties', _GetPlayerId(self.owner), NetworkGetNetworkIdFromEntity(vehicle), props)
 
                 table.insert(self.vehicles, {
                     plate = v.plate,
@@ -148,26 +150,48 @@ CreateGarageInstance = function(id, owner)
         return vehicles
     end
 
+    self.GetVehicle = function(plate)
+        for k, v in ipairs(self.vehicles) do
+            if v.plate == plate then
+                return v
+            end
+        end
+
+        return
+    end
+
+    self.GetVehicleEntities = function()
+        local data = {}
+
+        for k, v in ipairs(self.vehicles) do
+            if v.entity then
+                table.insert(data, NetworkGetNetworkIdFromEntity(v.entity))
+            end
+        end
+
+        return data
+    end
+
     self.UpdateVehicleSlot = function(plate, slot)
         for k, v in ipairs(self.vehicles) do
             if v.plate == plate then
                 self.vehicles[k].slot = slot
+                self.UpdateVehiclePosition(plate)
                 break
             end
         end
     end
 
-    self.UpdateVehicleEntity = function(plate)
+    self.UpdateVehiclePosition = function(plate)
         for k, v in ipairs(self.vehicles) do
+            if v.plate == plate then
+                local coords = Config.Locations.VehicleLocations[v.slot]
 
-        end
-    end
-
-    self.UpdateVisitorsVehicles = function()
-        for k, v in ipairs(self.visitors) do
-            local playerId = _GetPlayerId(v)
-
-            TriggerClientEvent('bryan_mazebank_garage:client:forceUpdateVehicles', playerId)
+                SetEntityCoords(v.entity, coords.x, coords.y, coords.z, 0.0, 0.0, 0.0, false)
+                SetEntityHeading(v.entity, coords.w)
+                
+                break
+            end
         end
     end
 
