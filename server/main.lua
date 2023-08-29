@@ -138,17 +138,22 @@ RegisterNetEvent('bryan_mazebank_garage:server:exitVehicle', function(plate)
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:server:enterGarage', function(visitId)
-    local identifier = _GetPlayerIdentifier(source)
+    local _source = source
+    local identifier = _GetPlayerIdentifier(_source)
     local garage = visitId and GetGarageById(visitId) or GetGarageByOwner(identifier)
 
     if garage then
         garage.AddVisitor(identifier)
 
-        SetPlayerRoutingBucket(source, garage.id)
+        SetPlayerRoutingBucket(_source, garage.id)
         ClearPlayerRequestsToGarages(identifier)
 
         if not garage.AreVehiclesSpawned() then
             garage.SpawnVehicles()
+        end
+
+        if garage.IsOwner(identifier) then
+            TriggerClientEvent('bryan_mazebank_garage:client:ownerThreads', _source)
         end
     end
 end)
