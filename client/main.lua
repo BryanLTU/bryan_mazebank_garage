@@ -605,11 +605,7 @@ VehicleElevatorScript = function(vehicle)
     FreezeEntityPosition(vehicle, true)
     AttachEntityToEntity(vehicle, object, 0, 0.0, 0.0, 0.6, 0.0, 0.0, 0.0, 0, false, false, false, GetEntityRotation(object), false)
     
-    local cam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
-    SetCamCoord(cam, -87.08, -821.06, 225.31)
-    SetCamRot(cam, -20.0, 0.0, 230.0)
-    RenderScriptCams(true, false, 0, true, true)
-    SetCamActive(cam, true)
+    ActivateElevatorCamera()
     
     DoScreenFadeIn(300)
     Citizen.Wait(300)
@@ -623,9 +619,22 @@ VehicleElevatorScript = function(vehicle)
     DoScreenFadeOut(300)
     Citizen.Wait(300)
 
+    DisableElevatorCamera()
+    
+    DeleteObject(object)
+end
+
+ActivateElevatorCamera = function()
+    local cam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
+    SetCamCoord(cam, -87.08, -821.06, 225.31)
+    SetCamRot(cam, -20.0, 0.0, 230.0)
+    RenderScriptCams(true, false, 0, true, true)
+    SetCamActive(cam, true)
+end
+
+DisableElevatorCamera = function()
     RenderScriptCams(false, false, 0, 0, 0)
     DestroyCam(cam, true)
-    DeleteObject(object)
 end
 
 RegisterNetEvent('bryan_mazebank_garage:client:exitGarage', ExitGarage)
