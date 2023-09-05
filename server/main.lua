@@ -215,6 +215,16 @@ RegisterNetEvent('bryan_mazebank_garage:server:acceptRequest', function(data)
     TriggerClientEvent('bryan_mazebank_garage:client:visitGarage', data.source, garage.id)
 end)
 
+RegisterNetEvent('bryan_mazebank_garage:server:refreshVehicles', function()
+    local _source = source
+    local garage = GetGarageByOwner(_GetPlayerIdentifier(_source))
+
+    if garage then
+        garage.DeleteVehicles()
+        garage.SpawnVehicles()
+    end
+end)
+
 IsPlayerGarageOwner = function(source)
     local identifier = _GetPlayerIdentifier(source)
 
