@@ -236,6 +236,8 @@ EnterGarage = function(vehicle)
 
     DoScreenFadeOut(200)
     Citizen.Wait(300)
+
+    TriggerServerEvent('bryan_mazebank_garage:server:enterGarage')
     
     if vehicle ~= nil then
         local doesGarageHaveEmptySpots = lib.callback.await('bryan_mazebank_garage:server:doesGarageHaveEmptySpots', false)
@@ -247,16 +249,25 @@ EnterGarage = function(vehicle)
 
         local props = _GetVehicleProperties(vehicle)
         TriggerServerEvent('bryan_mazebank_garage:server:enterVehicle', props.plate, props)
+
         VehicleElevatorScript(vehicle)
         _DeleteVehicle(vehicle)
+        
         Citizen.Wait(200)
     end
 
     isInGarage = true
     SetEntityCoords(PlayerPedId(), Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z, 0.0, 0.0, 0.0, false)
-    TriggerServerEvent('bryan_mazebank_garage:server:enterGarage')
 
     DoScreenFadeIn(200)
+end
+
+EnterGaragePassanger = function(vehicle)
+    ActivateElevatorCamera()
+
+    while DoesEntityExist(vehicle) do Citizen.Wait(50) end
+
+    DisableElevatorCamera()
 end
 
 VisitGarage = function(id)
@@ -632,6 +643,13 @@ end)
 RegisterNetEvent('bryan_mazebank_garage:client:ownerThreads', function()
     Citizen.CreateThread(OnDriveExit)
     Citizen.CreateThread(DisplayUnlockText)
+end)
+
+RegisterNetEvent('bryan_mazebank_garage:client:enterGaragePassanger', function(netId, seat)
+    local vehicle = NetworkGetEntityFromNetworkId(netId)
+
+    EnterGaragePassanger(vehicle)
+    TaskWarpPedIntoVehicle(PlayerPedId(), vehicle, seat)
 end)
 
 --[[AddEventHandler('onResourceStop', function(resourceName)

@@ -155,6 +155,23 @@ RegisterNetEvent('bryan_mazebank_garage:server:enterGarage', function(visitId)
         if garage.IsOwner(identifier) then
             TriggerClientEvent('bryan_mazebank_garage:client:ownerThreads', _source)
         end
+
+        local vehicle = GetVehiclePedIsIn(GetPlayerPed(_source), false)
+        local netId = NetworkGetNetworkIdFromEntity(vehicle)
+
+        if vehicle then
+            SetEntityRoutingBucket(vehicle, garage.id)
+            
+            for i = 0, 6 do
+                local passanger = NetworkGetEntityOwner(GetPedInVehicleSeat(vehicle, i)))
+
+                SetEntityRoutingBucket(passanger, garage.id)
+
+                if passanger ~= 0 then
+                    TriggerClientEvent('bryan_mazebank_garage:client:enterGaragePassanger', passanger, netId, i)
+                end
+            end
+        end
     end
 end)
 
