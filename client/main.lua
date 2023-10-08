@@ -306,9 +306,9 @@ ExitGarage = function(data)
 
             if alert == 'cancel' then
                 return
-            else
-                TriggerServerEvent('bryan_mazebank_garage:server:forceExitVisitors')
             end
+
+            TriggerServerEvent('bryan_mazebank_garage:server:forceExitVisitors')
         end
     end
 
