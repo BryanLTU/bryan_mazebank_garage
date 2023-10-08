@@ -11,8 +11,8 @@ _Notification = function(source, msg)
     })
 end
 
-_GetPlayerFromId = function(source)
-    return ESX.GetPlayerFromId(source)
+_IsPlayerOnline = function(source)
+    return GetPlayerName(source) ~= nil
 end
 
 _GetPlayerIdentifier = function(source)

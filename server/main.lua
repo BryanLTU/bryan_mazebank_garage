@@ -105,11 +105,11 @@ RegisterNetEvent('bryan_mazebank_garage:server:requestToEnter', function(id)
         return false
     end
 
-    local xPlayer = _GetPlayerFromId(source)
-    local xTarget = _GetPlayerFromId(id)
-
-    if xPlayer and xTarget then
-        if not requests[id] then requests[id] = {} end
+    if _IsPlayerOnline(source) and _IsPlayerOnline(id) then
+        if garage.DoesRequestExist(_GetPlayerIdentifier(id)) then
+            _Notification(source, _U('notification_request_already_exists'))
+            return
+        end
 
         table.insert(requests[id], source)
 
