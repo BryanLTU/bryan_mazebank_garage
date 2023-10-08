@@ -653,6 +653,7 @@ RegisterNetEvent('bryan_mazebank_garage:client:ownerThreads', function()
     Citizen.CreateThread(DisplayUnlockText)
 end)
 
+-- TODO Remove Passanger functions (Server does it already)
 RegisterNetEvent('bryan_mazebank_garage:client:enterGaragePassanger', function(netId, seat)
     local vehicle = NetworkGetEntityFromNetworkId(netId)
 
