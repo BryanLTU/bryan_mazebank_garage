@@ -23,7 +23,7 @@ Locales['en'] = {
     ['no_requests'] = 'No Requests',
     ['let_inside'] = 'Let Inside',
     ['warning'] = 'Warning!',
-    ['exit_with_visitors_warning'] = 'You\'re about to exit the Garage while there\'re still some Visitors. If you procceed all the Visitors will be Kicked Out. Do you procceed?',
+    ['exit_with_visitors_warning'] = 'You\'re about to exit the Garage while there\'re still some Visitors. If you procceed all the Visitors will be Kicked Out. Do you want to procceed?',
     ['manage_garage'] = 'Manage Garage',
 
     ['notification_invite_requested'] = 'You\'ve Requested To Enter %s Garage',
@@ -34,6 +34,7 @@ Locales['en'] = {
     ['notification_buy_not_enough_money'] = 'You don\'t have enough Money',
     ['notification_enter_too_far_away'] = 'Your position is too far away from the Entrance',
     ['notification_garage_full'] = 'Your Garage is fully Occupied with vehicles',
+    ['notification_request_already_exists'] = 'You already requested to enter this Garage',
 
     ['alert_vehicle_managment_select_vehicle'] = 'Select Vehicle',
     ['alert_vehicle_managment_select_spot'] = 'Select Spot',
