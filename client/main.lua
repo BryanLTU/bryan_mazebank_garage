@@ -6,15 +6,9 @@ local currPlayers = {}
 local garageVehicles = {}
 local isInGarage, isInMagment = false, false
 
-if Config.DebugMode then
-    Citizen.CreateThread(function()
-        StartScript()
-    end)
-else
-    RegisterNetEvent('esx:playerLoaded', function()
-        StartScript()
-    end)
-end
+RegisterNetEvent('esx:playerLoaded', function()
+    StartScript()
+end)
 
 StartScript = function()
     RegisterContextMenus()
@@ -661,8 +655,9 @@ RegisterNetEvent('bryan_mazebank_garage:client:enterGaragePassanger', function(n
     TaskWarpPedIntoVehicle(PlayerPedId(), vehicle, seat)
 end)
 
---[[AddEventHandler('onResourceStop', function(resourceName)
-    if resourceName == GetCurrentResourceName() and currFloor ~= 0 then
-        ExitGarage()
+AddEventHandler('onResourceStart', function(resourceName)
+    if resourceName == GetCurrentResourceName() then
+        _WaitForPlayerToLoad()
+        StartScript()
     end
-end)]]
+end)

@@ -7,6 +7,12 @@ _Notification = function(msg)
     })
 end
 
+_WaitForPlayerToLoad = function()
+    while not ESX do Citizen.Wait(1) end
+    while not ESX.GetPlayerData() do Citizen.Wait(1) end
+    while not ESX.GetPlayerData().job do Citizen.Wait(1) end
+end
+
 _SetVehicleProperties = function(vehicle, props)
     ESX.Game.SetVehicleProperties(vehicle, props)
 end
