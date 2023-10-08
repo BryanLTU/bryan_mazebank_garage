@@ -326,7 +326,7 @@ ForceKickVisitors = function(source)
 
     if garage then
         for k, v in ipairs(garage.GetVisitors()) do
-            TriggerClientEvent('bryan_mazebank_garage:client:exitGarage', v)
+            TriggerClientEvent('bryan_mazebank_garage:client:exitGarage', v.data.source)
         end
     end
 end
