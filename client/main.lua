@@ -139,7 +139,7 @@ RegisterContextMenus = function()
                     return
                 end
 
-                EnterGarage(GetVehiclePedIsIn(PlayerPedId(), false))
+                TriggerServerEvent('bryan_mazebank_garage:server:enterGarage')
             end
         }}
     })
@@ -172,7 +172,7 @@ PressedControl = function(position)
             table.insert(options, {
                 title = _U('menu_enter_garage'),
                 onSelect = function()
-                    EnterGarage()
+                    TriggerServerEvent('bryan_mazebank_garage:server:enterGarage')
                 end
             })
         else
@@ -218,43 +218,20 @@ PressedControl = function(position)
     end
 end
 
-EnterGarage = function(vehicle)
-    local coords = GetEntityCoords(PlayerPedId())
-
-    if #(coords - vector3(Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z)) > 10.0 and
-    #(coords - vector3(Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z)) > 10.0 and
-    #(coords - vector3(Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z)) > 10.0 then
-        _Notification(_U('notification_enter_too_far_away'))
-        return
+lib.callback.register('bryan_mazebank_garage:client:triggerFadeout', function(value)
+    if value then
+        DoScreenFadeOut(100)
+    else
+        DoScreenFadeIn(100)
     end
+    Wait(1000)
 
-    DoScreenFadeOut(200)
-    Citizen.Wait(300)
+    return true
+end)
 
-    TriggerServerEvent('bryan_mazebank_garage:server:enterGarage')
-    
-    if vehicle ~= nil then
-        local doesGarageHaveEmptySpots = lib.callback.await('bryan_mazebank_garage:server:doesGarageHaveEmptySpots', false)
-
-        if not doesGarageHaveEmptySpots then
-            _Notification(_U('notification_garage_full'))
-            return
-        end
-
-        local props = _GetVehicleProperties(vehicle)
-        TriggerServerEvent('bryan_mazebank_garage:server:enterVehicle', props.plate, props)
-
-        VehicleElevatorScript(vehicle)
-        _DeleteVehicle(vehicle)
-        
-        Citizen.Wait(200)
-    end
-
-    isInGarage = true
-    SetEntityCoords(PlayerPedId(), Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z, 0.0, 0.0, 0.0, false)
-
-    DoScreenFadeIn(200)
-end
+lib.callback.register('bryan_mazebank_garage:client:getVehicleProps', function(vehicleNetId)
+    return _GetVehicleProperties(NetToVeh(vehicleNetId))
+end)
 
 EnterGaragePassanger = function(vehicle)
     ActivateElevatorCamera()
@@ -587,6 +564,22 @@ VehicleLockAnimation = function(vehicle)
     SetVehicleLights(vehicle, 0); Citizen.Wait(200)
 end
 
+-- TODO Move callback to appropiate position
+lib.callback.register('bryan_mazebank_garage:client:requestModel', function()
+    RequestModel(`imp_prop_int_garage_mirror01`)
+    while not HasModelLoaded(`imp_prop_int_garage_mirror01`) do
+        Wait(10)
+    end
+
+    return
+end)
+
+lib.callback.register('bryan_mazebank_garage:client:attachVehicleToElevator', function(vehicleNetId, elevatorNetId)
+    AttachEntityToEntity(NetToVeh(vehicleNetId), NetToObj(elevatorNetId), 0, 0.0, 0.0, 0.6, 0.0, 0.0, 0.0, 0, false, false, false, GetEntityRotation(NetToObj(elevatorNetId)), false)
+
+    return
+end)
+
 VehicleElevatorScript = function(vehicle)
     local liftHash = `imp_prop_int_garage_mirror01`
     RequestModel(liftHash)
@@ -617,6 +610,18 @@ VehicleElevatorScript = function(vehicle)
     
     DeleteObject(object)
 end
+
+-- TODO
+RegisterNetEvent('bryan_mazebank_garage:client:ActivateElevatorCamera', function() ActivateElevatorCamera() end)
+
+RegisterNetEvent('bryan_mazebank_garage:client:DisableElevatorCamera', function() DisableElevatorCamera() end)
+
+RegisterNetEvent('bryan_mazebank_garage:client:fadeout', function(value, length)
+    length = length or 1000
+
+    if value then DoScreenFadeOut(length)
+    else DoScreenFadeIn(length) end
+end)
 
 ActivateElevatorCamera = function()
     local cam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)

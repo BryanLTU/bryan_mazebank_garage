@@ -120,10 +120,10 @@ RegisterNetEvent('bryan_mazebank_garage:server:requestToEnter', function(id)
     end
 end)
 
-RegisterNetEvent('bryan_mazebank_garage:server:enterVehicle', function(plate, props)
-    local _source = source
+RegisterNetEvent('bryan_mazebank_garage:server:enterVehicle', function(plate, props, id)
+    local _source = id or source
     local freeSpot = GetFreeSpotInGarage(_source)
-    
+
     if freeSpot then
         MySQL.insert.await('INSERT INTO bryan_garage_vehicles (identifier, plate, properties, slot) VALUES (?, ?, ?, ?)', {
             _GetPlayerIdentifier(_source), plate, json.encode(props), freeSpot
@@ -133,6 +133,18 @@ RegisterNetEvent('bryan_mazebank_garage:server:enterVehicle', function(plate, pr
     end
 end)
 
+RegisterNewVehicle = function(source, plate, props)
+    local freeSpot = GetFreeSpotInGarage(source)
+
+    if freeSpot then
+        MySQL.insert.await('INSERT INTO bryan_garage_vehicles (identifier, plate, properties, slot) VALUES (?, ?, ?, ?)', {
+            _GetPlayerIdentifier(source), plate, json.encode(props), freeSpot
+        })
+        
+        _UpdateOwnedVehicleTable(source, plate, true)
+    end
+end
+
 RegisterNetEvent('bryan_mazebank_garage:server:exitVehicle', function(plate)
     MySQL.update.await('DELETE FROM bryan_garage_vehicles WHERE plate = ?', { plate })
 
@@ -141,40 +153,11 @@ end)
 
 RegisterNetEvent('bryan_mazebank_garage:server:enterGarage', function(visitId)
     local _source = source
-    local identifier = _GetPlayerIdentifier(_source)
-    local garage = visitId and GetGarageById(visitId) or GetGarageByOwner(identifier)
 
-    if garage then
-        garage.AddVisitor(identifier)
-
-        SetPlayerRoutingBucket(_source, garage.id)
-        ClearPlayerRequestsToGarages(identifier)
-
-        if not garage.AreVehiclesSpawned() then
-            garage.SpawnVehicles()
-        end
-
-        if garage.IsOwner(identifier) then
-            TriggerClientEvent('bryan_mazebank_garage:client:ownerThreads', _source)
-        end
-
-        local vehicle = GetVehiclePedIsIn(GetPlayerPed(_source), false)
-        local netId = NetworkGetNetworkIdFromEntity(vehicle)
-
-        if vehicle then
-            SetEntityRoutingBucket(vehicle, garage.id)
-            
-            for i = 0, 6 do
-                local passanger = NetworkGetEntityOwner(GetPedInVehicleSeat(vehicle, i))
-
-                SetEntityRoutingBucket(passanger, garage.id)
-
-                if passanger ~= 0 then
-                    TriggerClientEvent('bryan_mazebank_garage:client:enterGaragePassanger', passanger, netId, i)
-                end
-            end
-        end
-    end
+    -- TODO Better execution
+    -- lib.callback.await('bryan_mazebank_garage:client:triggerFadeout', _source, true)
+    EnterGarage(_source, visitId)
+    -- lib.callback.await('bryan_mazebank_garage:client:triggerFadeout', _source, false)
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:server:exitGarage', function()
@@ -227,6 +210,128 @@ RegisterNetEvent('bryan_mazebank_garage:server:refreshVehicles', function()
         garage.SpawnVehicles()
     end
 end)
+
+EnterGarage = function(source, visitId)
+    local identifier = _GetPlayerIdentifier(source)
+    local garage = visitId and GetGarageById(visitId) or GetGarageByOwner(identifier)
+
+    -- Location
+    local ped = GetPlayerPed(source)
+    if #(GetEntityCoords(ped) - vector3(Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z)) > 10.0 and
+        #(GetEntityCoords(ped) - vector3(Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z)) > 10.0 then
+        _Notification(source, _U('notification_enter_too_far_away'))
+        return
+    end
+
+    if not garage then
+        _Notification(source, _('notification_fault'))
+        return
+    end
+
+    local vehicle = GetVehiclePedIsIn(ped, false)
+    if vehicle and vehicle ~= 0 and not EnterVehicle(source, vehicle, garage) then
+        return
+    else
+        garage.AddVisitor(identifier)
+        SetEntityCoords(ped, Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z)
+
+        SetPlayerRoutingBucket(source, garage.id)
+        ClearPlayerRequestsToGarages(identifier)
+    end
+
+    if not garage.AreVehiclesSpawned() then
+        garage.SpawnVehicles()
+    end
+
+    if garage.IsOwner(identifier) then
+        TriggerClientEvent('bryan_mazebank_garage:client:ownerThreads', source)
+    end    
+end
+
+EnterVehicle = function(source, vehicle, garage)
+    local ped = GetPlayerPed(source)
+    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+
+    if GetFreeSpotInGarage(source) == false then
+        _Notification(source, _U('notification_garage_full'))
+        return false
+    end
+
+    if vehicle and #(GetEntityCoords(ped) - vector3(Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z)) > 10.0 then
+        _Notification(source, _U('notification_enter_with_vehicle_only_garage'))
+        return false
+    end
+
+    local passangers = { {id = source, seat = -1} }
+    for i = 0, 6 do
+        local passanger = NetworkGetEntityOwner(GetPedInVehicleSeat(vehicle, i))
+
+        if passanger ~= 0 then
+            TriggerClientEvent('bryan_mazebank_garage:client:fadeout', passanger, true)
+            table.insert(passangers, { id = passanger, seat = i })
+        end
+
+        Citizen.Wait(10)
+    end
+
+    SetEntityRoutingBucket(vehicle, garage.id)
+
+    for k, v in ipairs(passangers) do
+        garage.AddVisitor(_GetPlayerIdentifier(v.id))
+
+        SetPlayerRoutingBucket(v.id, garage.id)
+        TaskWarpPedIntoVehicle(GetPlayerPed(v.id), vehicle, v.seat)
+        ClearPlayerRequestsToGarages(_GetPlayerIdentifier(v.id))
+
+        lib.callback.await('bryan_mazebank_garage:client:requestModel', v.id)
+        TriggerClientEvent('bryan_mazebank_garage:client:ActivateElevatorCamera', v.id)
+
+        Citizen.Wait(10)
+    end
+
+    -- TODO Disable Exiting Vehicle
+    SpawnElevator(source, vehicle, passangers, garage.id)
+
+    local props = lib.callback.await('bryan_mazebank_garage:client:getVehicleProps', source, NetworkGetNetworkIdFromEntity(vehicle))
+    RegisterNewVehicle(source, props.plate, props)
+
+    DeleteEntity(vehicle)
+
+    -- TODO Add exiting vehicle animation
+    for k, v in ipairs(passangers) do
+        SetEntityCoords(GetPlayerPed(v.id), Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z)
+        TriggerClientEvent('bryan_mazebank_garage:client:fadeout', v.id, false)
+    end
+
+    return true
+end
+
+SpawnElevator = function(source, vehicle, passangers, id)
+    local pos = vector3(Config.Locations.VehicleElevator.x, Config.Locations.VehicleElevator.y, Config.Locations.VehicleElevator.z)
+    local object = CreateObject(`imp_prop_int_garage_mirror01`, pos.x, pos.y, pos.z - 3.0, true, false, false)
+    
+    while not DoesEntityExist(object) do Wait(10) end
+    
+    SetEntityCoords(vehicle, pos.x, pos.y, pos.z - 2.8, 0.0, 0.0, 0.0, false)
+    FreezeEntityPosition(vehicle, true)
+    lib.callback.await('bryan_mazebank_garage:client:attachVehicleToElevator', source, NetworkGetNetworkIdFromEntity(vehicle), NetworkGetNetworkIdFromEntity(object))
+
+    for k, v in ipairs(passangers) do TriggerClientEvent('bryan_mazebank_garage:client:fadeout', v.id, false, 300) end
+
+    while #(GetEntityCoords(object) - pos) > 0.5 do
+        SetEntityCoords(object, GetEntityCoords(object) + vector3(0.0, 0.0, 0.01))
+        SetEntityHeading(object, GetEntityHeading(object) + 0.3)
+        Wait(5)
+    end
+
+    for k, v in ipairs(passangers) do
+        TriggerClientEvent('bryan_mazebank_garage:client:fadeout', v.id, true, 100)
+        Wait(100)
+        TriggerClientEvent('bryan_mazebank_garage:client:DisableElevatorCamera', v.id)
+    end
+
+    DeleteEntity(object)
+end
 
 IsPlayerGarageOwner = function(source)
     local identifier = _GetPlayerIdentifier(source)
