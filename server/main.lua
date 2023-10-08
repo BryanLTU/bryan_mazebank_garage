@@ -163,7 +163,7 @@ RegisterNetEvent('bryan_mazebank_garage:server:enterGarage', function(visitId)
             SetEntityRoutingBucket(vehicle, garage.id)
             
             for i = 0, 6 do
-                local passanger = NetworkGetEntityOwner(GetPedInVehicleSeat(vehicle, i)))
+                local passanger = NetworkGetEntityOwner(GetPedInVehicleSeat(vehicle, i))
 
                 SetEntityRoutingBucket(passanger, garage.id)
 
