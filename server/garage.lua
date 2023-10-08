@@ -58,6 +58,10 @@ CreateGarageInstance = function(id, owner)
         return #self.visitors ~= 0
     end
 
+    self.AddRequest = function(identifier)
+        table.insert(self.requests, identifier)
+    end
+
     self.RemoveRequest = function(identifier)
         for k, v in ipairs(self.requests) do
             if v == identifier then
@@ -77,19 +81,27 @@ CreateGarageInstance = function(id, owner)
         for k, v in ipairs(self.requests) do
             local playerId = _GetPlayerId(v)
 
-            table.insert(data, {
-                title = _GetPlayerName(playerId),
-                description = _U('let_inside'),
-                serverEvent = 'bryan_mazebank_garage:server:acceptRequest',
-                args = { source = playerId }
-            })
+            if playerId then
+                table.insert(data, {
+                    title = _GetPlayerName(playerId),
+                    description = _U('let_inside'),
+                    serverEvent = 'bryan_mazebank_garage:server:acceptRequest',
+                    args = { source = playerId }
+                })
+            end
         end
         
         return data
     end
 
-    self.GetRequests = function()
-        return self.requests
+    self.DoesRequestExist = function(identifier)
+        for k, v in ipairs(self.requests) do
+            if v == identifier then
+                return true
+            end
+        end
+
+        return false
     end
 
     self.SpawnVehicles = function()

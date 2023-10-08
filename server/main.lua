@@ -100,9 +100,11 @@ lib.callback.register('bryan_mazebank_garage:server:getGarageId', function(sourc
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:server:requestToEnter', function(id)
-    if not DoesGrarageInstanceExist(id) then
+    local garage = GetGarageById(id)
+
+    if not garage then
         _Notification(source, _U('notification_invite_instance_does_not_exist'))
-        return false
+        return
     end
 
     if _IsPlayerOnline(source) and _IsPlayerOnline(id) then
@@ -111,7 +113,7 @@ RegisterNetEvent('bryan_mazebank_garage:server:requestToEnter', function(id)
             return
         end
 
-        table.insert(requests[id], source)
+        garage.AddRequest(_GetPlayerIdentifier(id))
 
         _Notification(source, _U('notification_invite_requested', id))
         _Notification(id, _U('notification_invite_request'))
@@ -210,8 +212,9 @@ RegisterNetEvent('bryan_mazebank_garage:server:forceExitVisitors', function()
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:server:acceptRequest', function(data)
-    local garage = GetGaragePlayerIsIn(source)
-
+    local garage = GetGaragePlayerIsIn(_GetPlayerIdentifier(source))
+    
+    garage.RemoveRequest(_GetPlayerIdentifier(data.source))
     TriggerClientEvent('bryan_mazebank_garage:client:visitGarage', data.source, garage.id)
 end)
 
