@@ -645,6 +645,7 @@ RegisterNetEvent('bryan_mazebank_garage:client:fadeout', function(value, length)
     else DoScreenFadeIn(length) end
 end)
 
+-- TODO Convert ExitGarage to server function
 RegisterNetEvent('bryan_mazebank_garage:client:exitGarage', ExitGarage)
 
 RegisterNetEvent('bryan_mazebank_garage:client:forceUpdateVehicles', function(id)
