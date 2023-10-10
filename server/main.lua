@@ -215,7 +215,6 @@ EnterGarage = function(source, visitId)
     local identifier = _GetPlayerIdentifier(source)
     local garage = visitId and GetGarageById(visitId) or GetGarageByOwner(identifier)
 
-    -- Location
     local ped = GetPlayerPed(source)
     if #(GetEntityCoords(ped) - vector3(Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z)) > 10.0 and
         #(GetEntityCoords(ped) - vector3(Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z)) > 10.0 then
@@ -229,7 +228,7 @@ EnterGarage = function(source, visitId)
     end
 
     local vehicle = GetVehiclePedIsIn(ped, false)
-    if vehicle and vehicle ~= 0 and not EnterVehicle(source, vehicle, garage) then
+    if not visitId and vehicle and vehicle ~= 0 and not EnterVehicle(source, vehicle, garage) then
         return
     else
         garage.AddVisitor(identifier)
