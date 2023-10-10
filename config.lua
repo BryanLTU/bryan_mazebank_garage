@@ -2,9 +2,6 @@ Config = {}
 
 Config.Locale = 'en'
 
--- TODO Desable debug
-Config.DebugMode = true
-
 Config.Price     = 15000
 Config.MaxFloors = 3
 Config.CheckOwnership = false
