@@ -198,7 +198,7 @@ RegisterNetEvent('bryan_mazebank_garage:server:acceptRequest', function(data)
     local garage = GetGaragePlayerIsIn(_GetPlayerIdentifier(source))
     
     garage.RemoveRequest(_GetPlayerIdentifier(data.source))
-    TriggerClientEvent('bryan_mazebank_garage:client:visitGarage', data.source, garage.id)
+    EnterGarage(data.source, garage.id)
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:server:refreshVehicles', function()
