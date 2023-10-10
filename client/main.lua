@@ -564,22 +564,6 @@ VehicleLockAnimation = function(vehicle)
     SetVehicleLights(vehicle, 0); Citizen.Wait(200)
 end
 
--- TODO Move callback to appropiate position
-lib.callback.register('bryan_mazebank_garage:client:requestModel', function()
-    RequestModel(`imp_prop_int_garage_mirror01`)
-    while not HasModelLoaded(`imp_prop_int_garage_mirror01`) do
-        Wait(10)
-    end
-
-    return
-end)
-
-lib.callback.register('bryan_mazebank_garage:client:attachVehicleToElevator', function(vehicleNetId, elevatorNetId)
-    AttachEntityToEntity(NetToVeh(vehicleNetId), NetToObj(elevatorNetId), 0, 0.0, 0.0, 0.6, 0.0, 0.0, 0.0, 0, false, false, false, GetEntityRotation(NetToObj(elevatorNetId)), false)
-
-    return
-end)
-
 VehicleElevatorScript = function(vehicle)
     local liftHash = `imp_prop_int_garage_mirror01`
     RequestModel(liftHash)
@@ -611,18 +595,6 @@ VehicleElevatorScript = function(vehicle)
     DeleteObject(object)
 end
 
--- TODO
-RegisterNetEvent('bryan_mazebank_garage:client:ActivateElevatorCamera', function() ActivateElevatorCamera() end)
-
-RegisterNetEvent('bryan_mazebank_garage:client:DisableElevatorCamera', function() DisableElevatorCamera() end)
-
-RegisterNetEvent('bryan_mazebank_garage:client:fadeout', function(value, length)
-    length = length or 1000
-
-    if value then DoScreenFadeOut(length)
-    else DoScreenFadeIn(length) end
-end)
-
 ActivateElevatorCamera = function()
     local cam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
     SetCamCoord(cam, -87.08, -821.06, 225.31)
@@ -635,6 +607,32 @@ DisableElevatorCamera = function()
     RenderScriptCams(false, false, 0, 0, 0)
     DestroyCam(cam, true)
 end
+
+lib.callback.register('bryan_mazebank_garage:client:requestModel', function()
+    RequestModel(`imp_prop_int_garage_mirror01`)
+    while not HasModelLoaded(`imp_prop_int_garage_mirror01`) do
+        Wait(10)
+    end
+
+    return
+end)
+
+lib.callback.register('bryan_mazebank_garage:client:attachVehicleToElevator', function(vehicleNetId, elevatorNetId)
+    AttachEntityToEntity(NetToVeh(vehicleNetId), NetToObj(elevatorNetId), 0, 0.0, 0.0, 0.6, 0.0, 0.0, 0.0, 0, false, false, false, GetEntityRotation(NetToObj(elevatorNetId)), false)
+
+    return
+end)
+
+RegisterNetEvent('bryan_mazebank_garage:client:ActivateElevatorCamera', function() ActivateElevatorCamera() end)
+
+RegisterNetEvent('bryan_mazebank_garage:client:DisableElevatorCamera', function() DisableElevatorCamera() end)
+
+RegisterNetEvent('bryan_mazebank_garage:client:fadeout', function(value, length)
+    length = length or 1000
+
+    if value then DoScreenFadeOut(length)
+    else DoScreenFadeIn(length) end
+end)
 
 RegisterNetEvent('bryan_mazebank_garage:client:exitGarage', ExitGarage)
 
