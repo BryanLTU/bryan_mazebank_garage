@@ -234,33 +234,6 @@ lib.callback.register('bryan_mazebank_garage:client:getVehicleProps', function(v
     return _GetVehicleProperties(NetToVeh(vehicleNetId))
 end)
 
-EnterGaragePassanger = function(vehicle)
-    ActivateElevatorCamera()
-
-    while DoesEntityExist(vehicle) do Citizen.Wait(50) end
-
-    DisableElevatorCamera()
-end
-
-VisitGarage = function(id)
-    local ped = PlayerPedId()
-    local coords = GetEntityCoords(ped)
-
-    if #(coords - vector3(Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z)) > 10.0 then
-        _Notification(_U('notification_enter_too_far_away'))
-        return
-    end
-
-    DoScreenFadeOut(200)
-    Citizen.Wait(300)
-
-    isInGarage = true
-    SetEntityCoords(PlayerPedId(), Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z, 0.0, 0.0, 0.0, false)
-    TriggerServerEvent('bryan_mazebank_garage:server:enterGarage', id)
-
-    DoScreenFadeIn(200)
-end
-
 ExitGarage = function(data)
     local vehicleData = data.plate and lib.callback.await('bryan_mazebank_garage:server:getGarageVehicle', false, data.plate) or nil
     local isGarageOwner = lib.callback.await('bryan_mazebank_garage:server:isGarageOwner', false)
@@ -652,8 +625,6 @@ RegisterNetEvent('bryan_mazebank_garage:client:forceUpdateVehicles', function(id
     SpawnGarage(id)
 end)
 
-RegisterNetEvent('bryan_mazebank_garage:client:visitGarage', VisitGarage)
-
 RegisterNetEvent('bryan_mazebank_garage:client:applyVehicleProperties', function(netId, props)
     _SetVehicleProperties(NetworkGetEntityFromNetworkId(netId), props)
 end)
@@ -661,14 +632,6 @@ end)
 RegisterNetEvent('bryan_mazebank_garage:client:ownerThreads', function()
     Citizen.CreateThread(OnDriveExit)
     Citizen.CreateThread(DisplayUnlockText)
-end)
-
--- TODO Remove Passanger functions (Server does it already)
-RegisterNetEvent('bryan_mazebank_garage:client:enterGaragePassanger', function(netId, seat)
-    local vehicle = NetworkGetEntityFromNetworkId(netId)
-
-    EnterGaragePassanger(vehicle)
-    TaskWarpPedIntoVehicle(PlayerPedId(), vehicle, seat)
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:client:toggleControlsInElevator', function(value)
