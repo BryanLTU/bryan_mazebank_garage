@@ -284,11 +284,11 @@ EnterVehicle = function(source, vehicle, garage)
 
         lib.callback.await('bryan_mazebank_garage:client:requestModel', v.id)
         TriggerClientEvent('bryan_mazebank_garage:client:ActivateElevatorCamera', v.id)
+        TriggerClientEvent('bryan_mazebank_garage:client:toggleControlsInElevator', v.id, true)
 
         Citizen.Wait(10)
     end
 
-    -- TODO Disable Exiting Vehicle
     SpawnElevator(source, vehicle, passangers, garage.id)
 
     local props = lib.callback.await('bryan_mazebank_garage:client:getVehicleProps', source, NetworkGetNetworkIdFromEntity(vehicle))
@@ -300,6 +300,7 @@ EnterVehicle = function(source, vehicle, garage)
     for k, v in ipairs(passangers) do
         SetEntityCoords(GetPlayerPed(v.id), Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z)
         TriggerClientEvent('bryan_mazebank_garage:client:fadeout', v.id, false)
+        TriggerClientEvent('bryan_mazebank_garage:client:toggleControlsInElevator', v.id, false)
     end
 
     return true

@@ -2,6 +2,7 @@ local hasGarage, currFloor = false, 0
 local isMenuOpened, isSettingUp = false, false
 local blip, garage, requests, requested = nil, {}, {}, {}
 local currPlayers = {}
+local disableControlsInElevator = false
 
 local garageVehicles = {}
 local isInGarage, isInMagment = false, false
@@ -608,6 +609,16 @@ DisableElevatorCamera = function()
     DestroyCam(cam, true)
 end
 
+DisableControlsInElevator = function()
+    Citizen.CreateThread(function()
+        while disableControlsInElevator do
+            DisableAllControlActions(0)
+
+            Citizen.Wait(1)
+        end
+    end)
+end
+
 lib.callback.register('bryan_mazebank_garage:client:requestModel', function()
     RequestModel(`imp_prop_int_garage_mirror01`)
     while not HasModelLoaded(`imp_prop_int_garage_mirror01`) do
@@ -657,6 +668,12 @@ RegisterNetEvent('bryan_mazebank_garage:client:enterGaragePassanger', function(n
 
     EnterGaragePassanger(vehicle)
     TaskWarpPedIntoVehicle(PlayerPedId(), vehicle, seat)
+end)
+
+RegisterNetEvent('bryan_mazebank_garage:client:toggleControlsInElevator', function(value)
+    disableControlsInElevator = value
+
+    if value then DisableControlsInElevator() end
 end)
 
 AddEventHandler('onResourceStart', function(resourceName)
