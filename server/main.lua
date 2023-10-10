@@ -247,6 +247,7 @@ EnterGarage = function(source, visitId)
     end    
 end
 
+-- TODO Minimize the amount of client events being called (stack them in one event)
 EnterVehicle = function(source, vehicle, garage)
     local ped = GetPlayerPed(source)
     local netId = NetworkGetNetworkIdFromEntity(vehicle)
