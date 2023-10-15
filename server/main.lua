@@ -393,7 +393,7 @@ end
 
 GetFreeSpotInGarage = function(id)
     local identifier = _GetPlayerIdentifier(id)
-    local result = MySQL.query.await('SELECT floor, slot FROM bryan_garage_vehicles WHERE identifier = ?', { identifier })
+    local result = MySQL.query.await('SELECT slot FROM bryan_garage_vehicles WHERE identifier = ?', { identifier })
 
     if result then
         for i = 1, 15 do
@@ -414,16 +414,6 @@ IsGarageSpotOccupied = function(occupiedSlots, slot)
     end
 
     return false
-end
-
-IsSpotFree = function(floor, slot, table)
-    for k, v in pairs(table) do
-        if v.floor == floor and v.slot == slot then
-            return false
-        end
-    end
-
-    return true
 end
 
 OnPlayerLeave = function(identifier, playerId)
