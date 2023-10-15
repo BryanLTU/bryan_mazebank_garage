@@ -299,6 +299,7 @@ ExitGarage = function(source, door)
         if #(GetEntityCoords(GetPlayerPed(source)) - vector3(Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z)) <= 5.0 then
             local exitLocation = door == 'elevator' and vector3(Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z) or vector3(Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z)
             
+            SetPlayerRoutingBucket(source, 0)
             SetEntityCoords(GetPlayerPed(source), exitLocation.x, exitLocation.y, exitLocation.z, 0.0, 0.0, 0.0, false)
         else
             _Notification(source, _('notification_fault'))
