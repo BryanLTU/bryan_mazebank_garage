@@ -600,9 +600,18 @@ lib.callback.register('bryan_mazebank_garage:client:getVehicleProps', function(v
     return _GetVehicleProperties(NetToVeh(vehicleNetId))
 end)
 
-RegisterNetEvent('bryan_mazebank_garage:client:ActivateElevatorCamera', function() ActivateElevatorCamera() end)
+RegisterNetEvent('bryan_mazebank_garage:client:ActivateElevatorCamera', function()
+    ActivateElevatorCamera()
 
-RegisterNetEvent('bryan_mazebank_garage:client:DisableElevatorCamera', function() DisableElevatorCamera() end)
+    disableControlsInElevator = true
+    DisableControlsInElevator()
+end)
+
+RegisterNetEvent('bryan_mazebank_garage:client:DisableElevatorCamera', function()
+    DisableElevatorCamera()
+
+    disableControlsInElevator = false
+end)
 
 RegisterNetEvent('bryan_mazebank_garage:client:fadeout', function(value, length)
     length = length or 1000
@@ -625,12 +634,6 @@ end)
 RegisterNetEvent('bryan_mazebank_garage:client:ownerThreads', function()
     Citizen.CreateThread(OnDriveExit)
     Citizen.CreateThread(DisplayUnlockText)
-end)
-
-RegisterNetEvent('bryan_mazebank_garage:client:toggleControlsInElevator', function(value)
-    disableControlsInElevator = value
-
-    if value then DisableControlsInElevator() end
 end)
 
 AddEventHandler('onResourceStart', function(resourceName)

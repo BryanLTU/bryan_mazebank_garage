@@ -246,7 +246,6 @@ EnterGarage = function(source, visitId)
     Player(source).state:set('isInGarage', true)
 end
 
--- TODO Minimize the amount of client events being called (stack them in one event)
 EnterVehicle = function(source, vehicle, garage)
     local ped = GetPlayerPed(source)
     local netId = NetworkGetNetworkIdFromEntity(vehicle)
@@ -284,7 +283,6 @@ EnterVehicle = function(source, vehicle, garage)
 
         lib.callback.await('bryan_mazebank_garage:client:requestModel', v.id)
         TriggerClientEvent('bryan_mazebank_garage:client:ActivateElevatorCamera', v.id)
-        TriggerClientEvent('bryan_mazebank_garage:client:toggleControlsInElevator', v.id, true)
 
         Citizen.Wait(10)
     end
@@ -300,7 +298,6 @@ EnterVehicle = function(source, vehicle, garage)
     for k, v in ipairs(passangers) do
         SetEntityCoords(GetPlayerPed(v.id), Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z)
         TriggerClientEvent('bryan_mazebank_garage:client:fadeout', v.id, false)
-        TriggerClientEvent('bryan_mazebank_garage:client:toggleControlsInElevator', v.id, false)
     end
 
     return true
