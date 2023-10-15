@@ -29,6 +29,8 @@ lib.callback.register('bryan_mazebank_garage:server:purchaseGarage', function(so
     local result = MySQL.insert.await('INSERT INTO bryan_garage_owners (identifier) VALUES (?)', { _GetPlayerIdentifier(source) })
     _RemovePlayerMoney(source, Config.Price)
 
+    table.insert(Garages, CreateGarageInstance(source, _GetPlayerIdentifier(source)))
+
     return true
 end)
 
