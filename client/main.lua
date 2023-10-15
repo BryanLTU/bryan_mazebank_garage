@@ -219,10 +219,6 @@ PressedControl = function(position)
     end
 end
 
-lib.callback.register('bryan_mazebank_garage:client:getVehicleProps', function(vehicleNetId)
-    return _GetVehicleProperties(NetToVeh(vehicleNetId))
-end)
-
 ExitGarage = function(data)
     local vehicleData = data.plate and lib.callback.await('bryan_mazebank_garage:server:getGarageVehicle', false, data.plate) or nil
     local isGarageOwner = lib.callback.await('bryan_mazebank_garage:server:isGarageOwner', false)
@@ -598,6 +594,10 @@ lib.callback.register('bryan_mazebank_garage:client:attachVehicleToElevator', fu
     AttachEntityToEntity(NetToVeh(vehicleNetId), NetToObj(elevatorNetId), 0, 0.0, 0.0, 0.6, 0.0, 0.0, 0.0, 0, false, false, false, GetEntityRotation(NetToObj(elevatorNetId)), false)
 
     return
+end)
+
+lib.callback.register('bryan_mazebank_garage:client:getVehicleProps', function(vehicleNetId)
+    return _GetVehicleProperties(NetToVeh(vehicleNetId))
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:client:ActivateElevatorCamera', function() ActivateElevatorCamera() end)
