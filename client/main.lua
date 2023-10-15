@@ -5,7 +5,7 @@ local currPlayers = {}
 local disableControlsInElevator = false
 
 local garageVehicles = {}
-local isInGarage, isInMagment = false, false
+local isInMagment = false
 
 RegisterNetEvent('esx:playerLoaded', function()
     StartScript()
@@ -270,7 +270,7 @@ ExitGarage = function(data)
         SetEntityCoords(ped, Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z, 0.0, 0.0, 0.0, false)
     end
 
-    isInGarage = false
+    Player(GetPlayerServerId(PlayerId())).state:set('isInGarage', false)
 
     Citizen.Wait(200)
     DoScreenFadeIn(200)
@@ -280,11 +280,12 @@ DisplayUnlockText = function()
     local closeVehicle
     local isUIOpen = false
     local vehicles = {}
+    local serverId = GetPlayerServerId(PlayerId())
 
     local data = lib.callback.await('bryan_mazebank_garage:server:getGarageVehicleEntities', false)
     for k, v in ipairs(data) do table.insert(vehicles, NetworkGetEntityFromNetworkId(v)) end
     
-    while isInGarage do
+    while Player(serverId).state.isInGarage do
         local sleep = true
         local coords = GetEntityCoords(PlayerPedId())
 
@@ -326,7 +327,9 @@ DisplayUnlockText = function()
 end
 
 OnDriveExit = function()
-    while isInGarage do
+    local serverId = GetPlayerServerId(PlayerId())
+
+    while Player(serverId).state.isInGarage do
         local sleep = true
         local ped = PlayerPedId()
 
@@ -400,10 +403,11 @@ GarageManagment = function()
 end
 
 StartVehicleManager = function()
+    local serverId = GetPlayerServerId(PlayerId())
     isInMagment = true
 
     local currentSlot, selectedVehicle = GetFirstVehicleSlotInGarage(), nil
-    while isInGarage and isInMagment do
+    while Player(serverId).state.isInGarage and isInMagment do
         local message = string.format('%s\n%s\n%s\n%s',
                                 selectedVehicle == nil and _U('alert_vehicle_managment_select_vehicle') or _U('alert_vehicle_managment_select_spot'),
                                 _U('alert_vehicle_managment_position'), _U('alert_vehicle_managment_confirm'), _U('alert_vehicle_managment_cancel'))

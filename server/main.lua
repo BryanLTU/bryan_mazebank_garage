@@ -241,7 +241,9 @@ EnterGarage = function(source, visitId)
 
     if garage.IsOwner(identifier) then
         TriggerClientEvent('bryan_mazebank_garage:client:ownerThreads', source)
-    end    
+    end
+
+    Player(source).state:set('isInGarage', true)
 end
 
 -- TODO Minimize the amount of client events being called (stack them in one event)
