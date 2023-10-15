@@ -154,10 +154,7 @@ end)
 RegisterNetEvent('bryan_mazebank_garage:server:enterGarage', function(visitId)
     local _source = source
 
-    -- TODO Better execution
-    -- lib.callback.await('bryan_mazebank_garage:client:triggerFadeout', _source, true)
     EnterGarage(_source, visitId)
-    -- lib.callback.await('bryan_mazebank_garage:client:triggerFadeout', _source, false)
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:server:exitGarage', function()

@@ -219,17 +219,6 @@ PressedControl = function(position)
     end
 end
 
-lib.callback.register('bryan_mazebank_garage:client:triggerFadeout', function(value)
-    if value then
-        DoScreenFadeOut(100)
-    else
-        DoScreenFadeIn(100)
-    end
-    Wait(1000)
-
-    return true
-end)
-
 lib.callback.register('bryan_mazebank_garage:client:getVehicleProps', function(vehicleNetId)
     return _GetVehicleProperties(NetToVeh(vehicleNetId))
 end)
