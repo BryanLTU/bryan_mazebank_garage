@@ -32,18 +32,6 @@ lib.callback.register('bryan_mazebank_garage:server:purchaseGarage', function(so
     return true
 end)
 
-lib.callback.register('bryan_mazebank_garage:server:doesGarageHaveEmptySpots', function(source)
-    return GetFreeSpotInGarage(source) ~= false
-end)
-
-lib.callback.register('bryan_mazebank_garage:server:getGarageVehicles', function(source)
-    local garage = GetGaragePlayerIsIn(_GetPlayerIdentifier(source))
-
-    if not garage then return {} end
-
-    return garage.vehicles
-end)
-
 lib.callback.register('bryan_mazebank_garage:server:getGarageVehicle', function(source, plate)
     local garage = GetGaragePlayerIsIn(_GetPlayerIdentifier(source))
     
@@ -120,19 +108,6 @@ RegisterNetEvent('bryan_mazebank_garage:server:requestToEnter', function(id)
     end
 end)
 
-RegisterNetEvent('bryan_mazebank_garage:server:enterVehicle', function(plate, props, id)
-    local _source = id or source
-    local freeSpot = GetFreeSpotInGarage(_source)
-
-    if freeSpot then
-        MySQL.insert.await('INSERT INTO bryan_garage_vehicles (identifier, plate, properties, slot) VALUES (?, ?, ?, ?)', {
-            _GetPlayerIdentifier(_source), plate, json.encode(props), freeSpot
-        })
-        
-        _UpdateOwnedVehicleTable(_source, plate, true)
-    end
-end)
-
 RegisterNewVehicle = function(source, plate, props)
     local freeSpot = GetFreeSpotInGarage(source)
 
@@ -165,10 +140,6 @@ RegisterNetEvent('bryan_mazebank_garage:server:updateVehiclePosition', function(
         garage.UpdateVehicleSlot(data2.plate, data2.slot)
         MySQL.update.await('UPDATE bryan_garage_vehicles SET slot = ? WHERE plate = ?', { data2.slot, data2.plate })
     end
-end)
-
-RegisterNetEvent('bryan_mazebank_garage:server:forceExitVisitors', function()
-    ForceKickVisitors(source)
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:server:acceptRequest', function(data)

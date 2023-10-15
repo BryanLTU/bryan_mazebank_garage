@@ -485,37 +485,6 @@ VehicleLockAnimation = function(vehicle)
     SetVehicleLights(vehicle, 0); Citizen.Wait(200)
 end
 
-VehicleElevatorScript = function(vehicle)
-    local liftHash = `imp_prop_int_garage_mirror01`
-    RequestModel(liftHash)
-    while not HasModelLoaded(liftHash) do Citizen.Wait(10) end
-    
-    local pos = vector3(Config.Locations.VehicleElevator.x, Config.Locations.VehicleElevator.y, Config.Locations.VehicleElevator.z)
-    
-    local object = CreateObject(liftHash, pos.x, pos.y, pos.z - 3.0, false, false, false)
-    SetEntityCoords(vehicle, pos.x, pos.y, pos.z - 2.8, 0.0, 0.0, 0.0, false)
-    FreezeEntityPosition(vehicle, true)
-    AttachEntityToEntity(vehicle, object, 0, 0.0, 0.0, 0.6, 0.0, 0.0, 0.0, 0, false, false, false, GetEntityRotation(object), false)
-    
-    ActivateElevatorCamera()
-    
-    DoScreenFadeIn(300)
-    Citizen.Wait(300)
-
-    while #(GetEntityCoords(object) - pos) > 0.5 do
-        SetEntityCoords(object, GetEntityCoords(object) + vector3(0.0, 0.0, 0.005))
-        SetEntityHeading(object, GetEntityHeading(object) + 0.3)
-        Citizen.Wait(10)
-    end
-
-    DoScreenFadeOut(300)
-    Citizen.Wait(300)
-
-    DisableElevatorCamera()
-    
-    DeleteObject(object)
-end
-
 ActivateElevatorCamera = function()
     local cam = CreateCam('DEFAULT_SCRIPTED_CAMERA', true)
     SetCamCoord(cam, -87.08, -821.06, 225.31)
@@ -576,13 +545,6 @@ RegisterNetEvent('bryan_mazebank_garage:client:fadeout', function(value, length)
 
     if value then DoScreenFadeOut(length)
     else DoScreenFadeIn(length) end
-end)
-
--- TODO Convert ExitGarage to server function
-RegisterNetEvent('bryan_mazebank_garage:client:exitGarage', ExitGarage)
-
-RegisterNetEvent('bryan_mazebank_garage:client:forceUpdateVehicles', function(id)
-    SpawnGarage(id)
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:client:applyVehicleProperties', function(netId, props)
