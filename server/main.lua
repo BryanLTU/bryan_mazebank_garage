@@ -145,34 +145,14 @@ RegisterNewVehicle = function(source, plate, props)
     end
 end
 
-RegisterNetEvent('bryan_mazebank_garage:server:exitVehicle', function(plate)
-    MySQL.update.await('DELETE FROM bryan_garage_vehicles WHERE plate = ?', { plate })
-
-    _UpdateOwnedVehicleTable(source, plate, false)
-end)
-
 RegisterNetEvent('bryan_mazebank_garage:server:enterGarage', function(visitId)
     local _source = source
 
     EnterGarage(_source, visitId)
 end)
 
-RegisterNetEvent('bryan_mazebank_garage:server:exitGarage', function()
-    local identifier = _GetPlayerIdentifier(source)
-    local garage = GetGaragePlayerIsIn(identifier)
-
-    if garage then
-        garage.RemoveVisitor(identifier)
-        if not self.DoesHaveVisitors() then
-            garage.DeleteVehicles()
-        end
-
-        SetPlayerRoutingBucket(source, 0)
-    end
-end)
-
-RegisterNetEvent('bryan_mazebank_garage:server:kickFromGarage', function(data)
-    TriggerClientEvent('bryan_mazebank_garage:client:exitGarage', data.source)
+RegisterNetEvent('bryan_mazebank_garage:server:exitGarage', function(door)
+    ExitGarage(source, door)
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:server:updateVehiclePosition', function(data1, data2)
@@ -330,6 +310,66 @@ SpawnElevator = function(source, vehicle, passangers, id)
     DeleteEntity(object)
 end
 
+ExitGarage = function(source, door)
+    local identifier = _GetPlayerIdentifier(source)
+    local garage = GetGaragePlayerIsIn(identifier)
+
+    if not garage then
+        if #(GetEntityCoords(GetPlayerPed(source)) - vector3(Config.Locations.Exit.x, Config.Locations.Exit.y, Config.Locations.Exit.z)) <= 5.0 then
+            local exitLocation = door == 'elevator' and vector3(Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z) or vector3(Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z)
+            
+            SetEntityCoords(GetPlayerPed(source), exitLocation.x, exitLocation.y, exitLocation.z, 0.0, 0.0, 0.0, false)
+        else
+            _Notification(source, _('notification_fault'))
+        end
+
+        return
+    end
+
+    if garage.IsOwner(identifier) and garage.GetVisitorCount() > 0 then
+        local kickVisitors = lib.callback.await('bryan_mazebank_garage:client:kickVisitorsOnExitDialog', source)
+
+        if not kickVisitors then
+            return
+        end
+
+        ForceKickVisitors(source)
+    end
+
+    TriggerClientEvent('bryan_mazebank_garage:client:fadeout', source, true, 100)
+
+    garage.RemoveVisitor(identifier)
+
+    SetPlayerRoutingBucket(source, 0)
+
+    local ped = GetPlayerPed(source)
+
+    if door and door == 'elevator' then
+        SetEntityCoords(ped, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, 0.0, 0.0, 0.0, false)
+
+        local vehicle = GetVehiclePedIsIn(ped, false)
+        if vehicle ~= 0 then
+            local plate = GetVehicleNumberPlateText(vehicle)
+            local vehicleData = garage.GetVehicle(plate)
+            local localVehicle = CreateVehicle(vehicleData.props.model, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, Config.Locations.EnterVh.w, true, false)
+
+            while not DoesEntityExist(localVehicle) do Citizen.Wait(10) end
+
+            TriggerClientEvent('bryan_mazebank_garage:client:applyVehicleProperties', source, NetworkGetNetworkIdFromEntity(localVehicle), vehicleData.props)
+
+            TaskWarpPedIntoVehicle(ped, localVehicle, -1)
+        end
+    else
+        -- TODO Add garage Exit animation
+        SetEntityCoords(ped, Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z, 0.0, 0.0, 0.0, false)
+    end
+
+    if not garage.DoesHaveVisitors() then garage.DeleteVehicles() end
+
+    TriggerClientEvent('bryan_mazebank_garage:client:toggleIsInGarage', source, false)
+    TriggerClientEvent('bryan_mazebank_garage:client:fadeout', source, false)
+end
+
 IsPlayerGarageOwner = function(source)
     local identifier = _GetPlayerIdentifier(source)
 
@@ -428,7 +468,7 @@ ForceKickVisitors = function(source)
 
     if garage then
         for k, v in ipairs(garage.GetVisitors()) do
-            TriggerClientEvent('bryan_mazebank_garage:client:exitGarage', v.data.source)
+            ExitGarage(v.args.source)
         end
     end
 end

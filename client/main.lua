@@ -152,13 +152,13 @@ RegisterContextMenus = function()
         options = {
             {
                 title = _U('front_door'),
-                onSelect = ExitGarage,
-                args = { door = 'front' },
+                serverEvent = 'bryan_mazebank_garage:server:exitGarage',
+                args = 'front',
             },
             {
                 title =  _U('garage_elevator'),
-                onSelect = ExitGarage,
-                args = { door = 'elevator' },
+                serverEvent = 'bryan_mazebank_garage:server:exitGarage',
+                args = 'elevator',
             }
         }
     })
@@ -219,58 +219,16 @@ PressedControl = function(position)
     end
 end
 
-ExitGarage = function(data)
-    local vehicleData = data.plate and lib.callback.await('bryan_mazebank_garage:server:getGarageVehicle', false, data.plate) or nil
-    local isGarageOwner = lib.callback.await('bryan_mazebank_garage:server:isGarageOwner', false)
-    
-    if isGarageOwner then
-        local visitorCount = lib.callback.await('bryan_mazebank_garage:server:getVisitorCount', false)
+lib.callback.register('bryan_mazebank_garage:client:kickVisitorsOnExitDialog', function()
+    local alert = lib.alertDialog({
+        header = _U('warning'),
+        content = _U('exit_with_visitors_warning'),
+        centered = true,
+        cancel = true,
+    })
 
-        if visitorCount > 0 then
-            local alert = lib.alertDialog({
-                header = _U('warning'),
-                content = _U('exit_with_visitors_warning'),
-                centered = true,
-                cancel = true,
-            })
-
-            if alert == 'cancel' then
-                return
-            end
-
-            TriggerServerEvent('bryan_mazebank_garage:server:forceExitVisitors')
-        end
-    end
-
-    DoScreenFadeOut(200)
-    Citizen.Wait(200)
-
-    TriggerServerEvent('bryan_mazebank_garage:server:exitGarage')
-    Citizen.Wait(200)
-
-    local ped = PlayerPedId()
-
-    if data.door and data.door == 'elevator' then
-        if data.plate then
-            SetEntityCoords(ped, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, 0.0, 0.0, 0.0, false)
-            
-            local localVehicle = _SpawnVehicle(vehicleData.props.model, vector3(Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z), Config.Locations.EnterVh.w)
-            _SetVehicleProperties(localVehicle, vehicleData.props)
-            TaskWarpPedIntoVehicle(ped, localVehicle, -1)
-            
-            TriggerServerEvent('bryan_mazebank_garage:server:exitVehicle', data.plate)
-        else
-            SetEntityCoords(ped, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, 0.0, 0.0, 0.0, false)
-        end
-    else
-        SetEntityCoords(ped, Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z, 0.0, 0.0, 0.0, false)
-    end
-
-    Player(GetPlayerServerId(PlayerId())).state:set('isInGarage', false)
-
-    Citizen.Wait(200)
-    DoScreenFadeIn(200)
-end
+    return alert ~= 'cancel'
+end)
 
 DisplayUnlockText = function()
     local closeVehicle
@@ -335,7 +293,7 @@ OnDriveExit = function()
             sleep = false
             
             if throttle >= 0.5 or throttle <= -0.5  then
-                ExitGarage({ door = 'elevator', plate = _GetVehicleProperties(vehicle).plate })
+                TriggerServerEvent('bryan_mazebank_garage:server:exitGarage', 'elevator')
                 return
             end
         end
