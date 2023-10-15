@@ -5,7 +5,7 @@ local currPlayers = {}
 local disableControlsInElevator = false
 
 local garageVehicles = {}
-local isInMagment = false
+local isInGarage, isInMagment = false, false
 
 RegisterNetEvent('esx:playerLoaded', function()
     StartScript()
@@ -280,8 +280,8 @@ DisplayUnlockText = function()
 
     local data = lib.callback.await('bryan_mazebank_garage:server:getGarageVehicleEntities', false)
     for k, v in ipairs(data) do table.insert(vehicles, NetworkGetEntityFromNetworkId(v)) end
-    
-    while Player(serverId).state.isInGarage do
+
+    while isInGarage do
         local sleep = true
         local coords = GetEntityCoords(PlayerPedId())
 
@@ -325,7 +325,7 @@ end
 OnDriveExit = function()
     local serverId = GetPlayerServerId(PlayerId())
 
-    while Player(serverId).state.isInGarage do
+    while isInGarage do
         local sleep = true
         local ped = PlayerPedId()
 
@@ -403,7 +403,7 @@ StartVehicleManager = function()
     isInMagment = true
 
     local currentSlot, selectedVehicle = GetFirstVehicleSlotInGarage(), nil
-    while Player(serverId).state.isInGarage and isInMagment do
+    while isInGarage and isInMagment do
         local message = string.format('%s\n%s\n%s\n%s',
                                 selectedVehicle == nil and _U('alert_vehicle_managment_select_vehicle') or _U('alert_vehicle_managment_select_spot'),
                                 _U('alert_vehicle_managment_position'), _U('alert_vehicle_managment_confirm'), _U('alert_vehicle_managment_cancel'))
@@ -634,6 +634,10 @@ end)
 RegisterNetEvent('bryan_mazebank_garage:client:ownerThreads', function()
     Citizen.CreateThread(OnDriveExit)
     Citizen.CreateThread(DisplayUnlockText)
+end)
+
+RegisterNetEvent('bryan_mazebank_garage:client:toggleIsInGarage', function(value)
+    isInGarage = true
 end)
 
 AddEventHandler('onResourceStart', function(resourceName)

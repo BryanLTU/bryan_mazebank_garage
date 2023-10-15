@@ -235,6 +235,8 @@ EnterGarage = function(source, visitId)
         ClearPlayerRequestsToGarages(identifier)
     end
 
+    TriggerClientEvent('bryan_mazebank_garage:client:toggleIsInGarage', source, true)
+
     if not garage.AreVehiclesSpawned() then
         garage.SpawnVehicles()
     end
@@ -242,8 +244,6 @@ EnterGarage = function(source, visitId)
     if garage.IsOwner(identifier) then
         TriggerClientEvent('bryan_mazebank_garage:client:ownerThreads', source)
     end
-
-    Player(source).state:set('isInGarage', true)
 end
 
 EnterVehicle = function(source, vehicle, garage)
