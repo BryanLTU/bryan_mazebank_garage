@@ -325,7 +325,7 @@ GarageManagment = function()
     local options = isGarageOwner and {
         { title = _U('visitors'), description = _U('count', visitorCount), menu = 'bryan_mazebank_garage:visitors', disabled = visitorCount == 0 },
         { title = _U('enter_requests'), description = _U('count', requestCount), menu = 'bryan_mazebank_garage:requests', disabled = requestCount == 0 },
-        { title = _U('manage_vehicles'), disabled = vehicleCount == 0, onSelect = StartVehicleManager },
+        { title = _U('manage_vehicles'), description = _U('count', vehicleCount), disabled = vehicleCount == 0, onSelect = StartVehicleManager },
         { title = _U('exit'), menu = 'bryan_mazebank_garage:exitOptions' },
     } or {
         { title = _U('exit'), menu = 'bryan_mazebank_garage:exitOptions' },

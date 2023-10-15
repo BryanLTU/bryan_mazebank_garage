@@ -34,6 +34,14 @@ lib.callback.register('bryan_mazebank_garage:server:purchaseGarage', function(so
     return true
 end)
 
+lib.callback.register('bryan_mazebank_garage:server:getGarageVehicles', function(source)
+    local garage = GetGaragePlayerIsIn(_GetPlayerIdentifier(source))
+
+    if not garage then return {} end
+
+    return garage.vehicles
+end)
+
 lib.callback.register('bryan_mazebank_garage:server:getGarageVehicle', function(source, plate)
     local garage = GetGaragePlayerIsIn(_GetPlayerIdentifier(source))
     
