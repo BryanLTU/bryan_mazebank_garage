@@ -9,6 +9,8 @@ CreateGarageInstance = function(id, owner)
     self.vehiclesSpawned    = false
 
     self.AddVisitor = function(identifier)
+        if self.IsVisitor(identifier) then return end
+        
         table.insert(self.visitors, identifier)
     end
 
