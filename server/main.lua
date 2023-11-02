@@ -280,7 +280,7 @@ SpawnElevator = function(source, vehicle, passangers, id)
     while #(GetEntityCoords(object) - pos) > 0.5 do
         SetEntityCoords(object, GetEntityCoords(object) + vector3(0.0, 0.0, 0.01))
         SetEntityHeading(object, GetEntityHeading(object) + 0.3)
-        Wait(5)
+        Wait(10)
     end
 
     for k, v in ipairs(passangers) do
