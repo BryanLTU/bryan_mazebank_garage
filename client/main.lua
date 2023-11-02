@@ -199,6 +199,7 @@ PressedControl = function(position)
                     { label = _U('id'), type = 'number', min = 1, default = 1 }
                 })
 
+                if not input then return end
                 if not tonumber(input[1]) then return end
 
                 TriggerServerEvent('bryan_mazebank_garage:server:requestToEnter', tonumber(input[1]))
