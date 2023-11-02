@@ -1,15 +1,5 @@
 local Garages = {}
 
-MySQL.ready(function()
-    local result = MySQL.query.await('SELECT identifier FROM bryan_garage_owners')
-
-    if result then
-        for k, v in ipairs(result) do
-            table.insert(Garages, CreateGarageInstance(k, v.identifier))
-        end
-    end
-end)
-
 lib.callback.register('bryan_mazebank_garage:server:doesOwnGarage', function(source)
     return IsPlayerGarageOwner(source)
 end)
@@ -95,6 +85,17 @@ lib.callback.register('bryan_mazebank_garage:server:getGarageId', function(sourc
     if garage then return garage.id end
     
     return nil
+end)
+
+RegisterNetEvent('bryan_mazebank_garage:server:registerGarage', function()
+    local _source = source
+    local identifier = _GetPlayerIdentifier(_source)
+    
+    local result = MySQL.query.await('SELECT identifier FROM bryan_garage_owners WHERE identifier = ?', { identifier })
+
+    if result and result[1] then
+        table.insert(Garages, CreateGarageInstance(_source, identifier))
+    end
 end)
 
 RegisterNetEvent('bryan_mazebank_garage:server:requestToEnter', function(id)

@@ -12,6 +12,7 @@ RegisterNetEvent('esx:playerLoaded', function()
 end)
 
 StartScript = function()
+    TriggerServerEvent('bryan_mazebank_garage:server:registerGarage')
     RegisterContextMenus()
     RefreshGarageBlip()
     Citizen.CreateThread(StartMarkers)
