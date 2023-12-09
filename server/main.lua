@@ -236,7 +236,7 @@ EnterVehicle = function(source, vehicle, garage)
 
     local props = lib.callback.await('bryan_mazebank_garage:client:getVehicleProps', source, NetworkGetNetworkIdFromEntity(vehicle))
     garage.AddVehicle(props.plate, props, GetFreeSpotInGarage(source))
-    _UpdateOwnedVehicleTable(source, props.plate, true)
+    _UpdateOwnedVehicleTable(props.plate, true)
 
     DeleteEntity(vehicle)
 
@@ -336,7 +336,7 @@ ExitGarage = function(source, door)
             end
 
             garage.RemoveVehicle(vehicleData.props.plate)
-            _UpdateOwnedVehicleTable(source, vehicleData.props.plate, false)
+            _UpdateOwnedVehicleTable(vehicleData.props.plate, false)
         else
             SetEntityCoords(ped, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, 0.0, 0.0, 0.0, false)
         end

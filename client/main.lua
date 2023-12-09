@@ -9,10 +9,6 @@ local isInGarage, isInMagment = false, false
 
 lib.locale()
 
-RegisterNetEvent('esx:playerLoaded', function()
-    StartScript()
-end)
-
 StartScript = function()
     TriggerServerEvent('bryan_mazebank_garage:server:registerGarage')
     RegisterContextMenus()
@@ -593,11 +589,4 @@ end)
 
 RegisterNetEvent('bryan_mazebank_garage:client:toggleIsInGarage', function(value)
     isInGarage = true
-end)
-
-AddEventHandler('onResourceStart', function(resourceName)
-    if resourceName == GetCurrentResourceName() then
-        _WaitForPlayerToLoad()
-        StartScript()
-    end
 end)

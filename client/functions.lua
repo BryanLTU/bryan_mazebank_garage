@@ -1,4 +1,18 @@
-ESX = exports['es_extended']:getSharedObject()
+FrameworkObj = nil
+
+if Config.Framework == 'esx' then
+    FrameworkObj = exports['es_extended']:getSharedObject()
+    
+    RegisterNetEvent('esx:playerLoaded', function()
+        StartScript()
+    end)
+elseif Config.Framework == 'qbcore' then
+    FrameworkObj = exports['qb-core']:GetCoreObject()
+    
+    RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()
+        StartScript()
+    end)
+end
 
 _Notification = function(msg)
     lib.notify({
@@ -7,37 +21,22 @@ _Notification = function(msg)
     })
 end
 
-_WaitForPlayerToLoad = function()
-    while not ESX do Citizen.Wait(1) end
-    while not ESX.GetPlayerData() do Citizen.Wait(1) end
-    while not ESX.GetPlayerData().job do Citizen.Wait(1) end
-end
-
 _SetVehicleProperties = function(vehicle, props)
-    ESX.Game.SetVehicleProperties(vehicle, props)
+    if Config.Framework == 'esx' then
+        FrameworkObj.Game.SetVehicleProperties(vehicle, props)
+    elseif Config.Framework == 'qbcore' then
+        FrameworkObj.Functions.SetVehicleProperties(vehicle, props)
+    end
 end
 
 _GetVehicleProperties = function(vehicle)
-    return ESX.Game.GetVehicleProperties(vehicle)
+    if Config.Framework == 'esx' then
+        return FrameworkObj.Game.GetVehicleProperties(vehicle)
+    elseif Config.Framework == 'qbcore' then
+        return FrameworkObj.Functions.GetVehicleProperties(vehicle)
+    end
 end
 
 _GetVehicleModelName = function(model)
     return GetDisplayNameFromVehicleModel(model)
-end
-
-_DeleteVehicle = function(vehicle)
-    ESX.Game.DeleteVehicle(vehicle)
-end
-
-_SpawnVehicle = function(model, coords, heading)
-    local vehicle = nil
-
-    ESX.Game.SpawnVehicle(model, coords, heading, function(callback_vehicle) vehicle = callback_vehicle end)
-    while vehicle == nil do Citizen.Wait(10) end
-
-    return vehicle
-end
-
-_ShowHelpNotification = function(msg)
-    ESX.ShowHelpNotification(msg)
 end

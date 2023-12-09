@@ -1,8 +1,19 @@
-ESX = exports['es_extended']:getSharedObject()
+FrameworkObj = nil
 
-RegisterNetEvent('esx:playerDropped', function(playerId, reason)
-    OnPlayerLeave(_GetPlayerIdentifier(playerId), playerId)
-end)
+if Config.Framework == 'esx' then
+    FrameworkObj = exports['es_extended']:getSharedObject()
+    
+    RegisterNetEvent('esx:playerDropped', function(playerId)
+        OnPlayerLeave(_GetPlayerIdentifier(playerId), playerId)
+    end)
+elseif Config.Framework == 'qbcore' then
+    FrameworkObj = exports['qb-core']:GetCoreObject()
+
+    RegisterNetEvent('QBCore:Server:OnPlayerUnload', function(playerId)
+        OnPlayerLeave(_GetPlayerIdentifier(playerId), playerId)
+    end)
+end
+
 
 _Notification = function(source, msg)
     TriggerClientEvent('ox_lib:notify', source, {
@@ -16,29 +27,51 @@ _IsPlayerOnline = function(source)
 end
 
 _GetPlayerIdentifier = function(source)
-    return ESX.GetPlayerFromId(source).getIdentifier()
+    if Config.Framework == 'esx' then
+        return FrameworkObj.GetPlayerFromId(source).getIdentifier()
+    elseif Config.Framework == 'qbcore' then
+        return FrameworkObj.Functions.GetIdentifier(source, 'license')
+    end
 end
 
 _GetPlayerId = function(identifier)
-    return ESX.GetPlayerFromIdentifier(identifier).source
+    if Config.Framework == 'esx' then
+        return FrameworkObj.GetPlayerFromIdentifier(identifier).source
+    elseif Config.Framework == 'qbcore' then
+        return FrameworkObj.Player.GetPlayerByLicense(identifier).source
+    end
 end
 
 _GetPlayerName = function(source)
-    return ESX.GetPlayerFromId(source).getName()
+    return GetPlayerName(source)
 end
 
 _GetPlayerMoney = function(source)
-    return ESX.GetPlayerFromId(source).getMoney()
+    if Config.Framework == 'esx' then
+        return FrameworkObj.GetPlayerFromId(source).getMoney()
+    elseif Config.Framework == 'qbcore' then
+        return FrameworkObj.Functions.GetPlayer(source).Functions.GetMoney('cash')
+    end
 end
 
 _RemovePlayerMoney = function(source, amount)
-    ESX.GetPlayerFromId(source).removeMoney(amount)
+    if Config.Framework == 'esx' then
+        FrameworkObj.GetPlayerFromId(source).removeMoney(amount)
+    elseif Config.Framework == 'qbcore' then
+        FrameworkObj.Functions.GetPlayer(source).Functions.RemoveMoney('cash', amount)
+    end
 end
 
-_UpdateOwnedVehicleTable = function(source, plate, stored)
+_UpdateOwnedVehicleTable = function(plate, stored)
     if Config.CheckOwnership then
-        MySQL.update.await('UPDATE owned_vehicles SET stored = ?, garage_name = "Maze Bank" WHERE owner = ? AND plate = ?', {
-            stored, _GetPlayerIdentifier(source), plate
-        })
+        if Config.Framework == 'esx' then
+            MySQL.update.await('UPDATE owned_vehicles SET stored = ?, garage_name = ? WHERE AND plate = ?', {
+                stored, locale(mazebank_garage), plate
+            })
+        elseif Config.Framework == 'qbcore' then
+            MySQL.update.await('UPDATE player_vehicles SET state = ?, garage = ? WHERE plate = ?', {
+                stored, locale(mazebank_garage), plate
+            })
+        end
     end
 end

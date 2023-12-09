@@ -2,6 +2,8 @@ Config = {}
 
 Config.Locale = 'en'
 
+Config.Framework = 'esx' -- esx / qbcore
+
 Config.Price     = 15000
 Config.MaxFloors = 3
 Config.CheckOwnership = false
