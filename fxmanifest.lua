@@ -7,7 +7,6 @@ lua54 'yes'
 
 shared_scripts {
     '@ox_lib/init.lua',
-    'locales/*.json',
     'config.lua'
 }
 
@@ -18,4 +17,8 @@ client_scripts {
 server_scripts {
     '@oxmysql/lib/MySQL.lua',
     'server/*.lua'
+}
+
+files {
+    'locales/*.json'
 }
