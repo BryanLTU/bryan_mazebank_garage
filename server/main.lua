@@ -210,17 +210,7 @@ EnterVehicle = function(source, vehicle, garage)
         return false
     end
 
-    local passangers = { {id = source, seat = -1} }
-    for i = 0, 6 do
-        local passanger = NetworkGetEntityOwner(GetPedInVehicleSeat(vehicle, i))
-
-        if passanger ~= 0 then
-            TriggerClientEvent('bryan_mazebank_garage:client:fadeout', passanger, true)
-            table.insert(passangers, { id = passanger, seat = i })
-        end
-
-        Citizen.Wait(10)
-    end
+    local passangers = GetPlayersInVehicle(vehicle)
 
     SetEntityRoutingBucket(vehicle, garage.id)
 
@@ -304,8 +294,6 @@ ExitGarage = function(source, door)
         if not kickVisitors then
             return
         end
-
-        ForceKickVisitors(source)
     end
 
     TriggerClientEvent('bryan_mazebank_garage:client:fadeout', source, true, 100)
@@ -317,10 +305,10 @@ ExitGarage = function(source, door)
     local ped = GetPlayerPed(source)
 
     if door and door == 'elevator' then
-        SetEntityCoords(ped, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, 0.0, 0.0, 0.0, false)
-
         local vehicle = GetVehiclePedIsIn(ped, false)
+
         if vehicle ~= 0 then
+            local passangers = GetPlayersInVehicle(vehicle)
             local plate = GetVehicleNumberPlateText(vehicle)
             local vehicleData = garage.GetVehicle(plate)
             local localVehicle = CreateVehicle(vehicleData.props.model, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, Config.Locations.EnterVh.w, true, false)
@@ -329,13 +317,26 @@ ExitGarage = function(source, door)
 
             TriggerClientEvent('bryan_mazebank_garage:client:applyVehicleProperties', source, NetworkGetNetworkIdFromEntity(localVehicle), vehicleData.props)
 
-            TaskWarpPedIntoVehicle(ped, localVehicle, -1)
+            for k, v in ipairs(passangers) do
+                local playerPed = GetPlayerPed(v.id)
+
+                SetPlayerRoutingBucket(v.id, 0)
+                SetEntityCoords(playerPed, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, 0.0, 0.0, 0.0, false)
+                
+                TaskWarpPedIntoVehicle(playerPed, localVehicle, v.seat)
+            end
+
+            garage.RemoveVehicle(vehicleData.props.plate)
+            _UpdateOwnedVehicleTable(source, vehicleData.props.plate, false)
+        else
+            SetEntityCoords(ped, Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z, 0.0, 0.0, 0.0, false)
         end
     else
         -- TODO Add garage Exit animation
         SetEntityCoords(ped, Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z, 0.0, 0.0, 0.0, false)
     end
 
+    ForceKickVisitors(source)
     if not garage.DoesHaveVisitors() then garage.DeleteVehicles() end
 
     TriggerClientEvent('bryan_mazebank_garage:client:toggleIsInGarage', source, false)
@@ -433,6 +434,23 @@ ForceKickVisitors = function(source)
             ExitGarage(v.args.source)
         end
     end
+end
+
+GetPlayersInVehicle = function(vehicle)
+    local passangers = {}
+    
+    for i = -1, 6 do
+        local player = GetPedInVehicleSeat(vehicle, i)
+
+        if player ~= 0 then
+            local playerId = NetworkGetEntityOwner(player)
+
+            TriggerClientEvent('bryan_mazebank_garage:client:fadeout', playerId, true)
+            table.insert(passangers, { id = playerId, seat = i })
+        end
+    end
+
+    return passangers
 end
 
 -- TODO change "slot" to "spot"
