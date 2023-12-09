@@ -1,5 +1,7 @@
 local Garages = {}
 
+lib.locale()
+
 lib.callback.register('bryan_mazebank_garage:server:doesOwnGarage', function(source)
     return IsPlayerGarageOwner(source)
 end)
@@ -12,7 +14,7 @@ end)
 
 lib.callback.register('bryan_mazebank_garage:server:purchaseGarage', function(source)
     if _GetPlayerMoney(source) < Config.Price then
-        _Notification(source, _U('notification_buy_not_enough_money'))
+        _Notification(source, locale('notification_buy_not_enough_money'))
         return false
     end
 
@@ -102,20 +104,20 @@ RegisterNetEvent('bryan_mazebank_garage:server:requestToEnter', function(id)
     local garage = GetGarageById(id)
 
     if not garage then
-        _Notification(source, _U('notification_invite_instance_does_not_exist'))
+        _Notification(source, locale('notification_invite_instance_does_not_exist'))
         return
     end
 
     if _IsPlayerOnline(source) and _IsPlayerOnline(id) then
         if garage.DoesRequestExist(_GetPlayerIdentifier(id)) then
-            _Notification(source, _U('notification_request_already_exists'))
+            _Notification(source, locale('notification_request_already_exists'))
             return
         end
 
         garage.AddRequest(_GetPlayerIdentifier(id))
 
-        _Notification(source, _U('notification_invite_requested', id))
-        _Notification(id, _U('notification_invite_request'))
+        _Notification(source, locale('notification_invite_requested', id))
+        _Notification(id, locale('notification_invite_request'))
     end
 end)
 
@@ -165,7 +167,7 @@ EnterGarage = function(source, visitId)
     local ped = GetPlayerPed(source)
     if #(GetEntityCoords(ped) - vector3(Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z)) > 10.0 and
         #(GetEntityCoords(ped) - vector3(Config.Locations.Enter.x, Config.Locations.Enter.y, Config.Locations.Enter.z)) > 10.0 then
-        _Notification(source, _U('notification_enter_too_far_away'))
+        _Notification(source, locale('notification_enter_too_far_away'))
         return
     end
 
@@ -201,12 +203,12 @@ EnterVehicle = function(source, vehicle, garage)
     local netId = NetworkGetNetworkIdFromEntity(vehicle)
 
     if GetFreeSpotInGarage(source) == false then
-        _Notification(source, _U('notification_garage_full'))
+        _Notification(source, locale('notification_garage_full'))
         return false
     end
 
     if vehicle and #(GetEntityCoords(ped) - vector3(Config.Locations.EnterVh.x, Config.Locations.EnterVh.y, Config.Locations.EnterVh.z)) > 10.0 then
-        _Notification(source, _U('notification_enter_with_vehicle_only_garage'))
+        _Notification(source, locale('notification_enter_with_vehicle_only_garage'))
         return false
     end
 

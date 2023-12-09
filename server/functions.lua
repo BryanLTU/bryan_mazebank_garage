@@ -6,7 +6,7 @@ end)
 
 _Notification = function(source, msg)
     TriggerClientEvent('ox_lib:notify', source, {
-        title = _U('menu_title'),
+        title = locale('mazebank_garage'),
         description = msg
     })
 end

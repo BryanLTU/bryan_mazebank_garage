@@ -2,7 +2,7 @@ ESX = exports['es_extended']:getSharedObject()
 
 _Notification = function(msg)
     lib.notify({
-        title = _U('menu_title'),
+        title = locale('mazebank_garage'),
         description = msg
     })
 end

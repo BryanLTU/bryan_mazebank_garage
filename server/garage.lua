@@ -36,7 +36,7 @@ CreateGarageInstance = function(id, owner)
 
                 table.insert(data, {
                     title = _GetPlayerName(playerId),
-                    description = _U('kick'),
+                    description = locale('kick'),
                     serverEvent = 'bryan_mazebank_garage:server:kickFromGarage',
                     args = { source = playerId },
                 })
@@ -86,7 +86,7 @@ CreateGarageInstance = function(id, owner)
             if playerId then
                 table.insert(data, {
                     title = _GetPlayerName(playerId),
-                    description = _U('let_inside'),
+                    description = locale('let_inside'),
                     serverEvent = 'bryan_mazebank_garage:server:acceptRequest',
                     args = { source = playerId }
                 })

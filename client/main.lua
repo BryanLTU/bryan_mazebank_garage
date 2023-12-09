@@ -7,6 +7,8 @@ local disableControlsInElevator = false
 local garageVehicles = {}
 local isInGarage, isInMagment = false, false
 
+lib.locale()
+
 RegisterNetEvent('esx:playerLoaded', function()
     StartScript()
 end)
@@ -52,7 +54,7 @@ RegisterTarget = function()
         drawSprite = true,
         options = {
             {
-                label = _U('menu_title'),
+                label = locale('mazebank_garage'),
                 name = 'enter',
                 distance = 1.5,
                 onSelect = function(data)
@@ -68,7 +70,7 @@ RegisterTarget = function()
         drawSprite = true,
         options = {
             {
-                label = _U('manage_garage'),
+                label = locale('manage_garage'),
                 name = 'exit',
                 distance = 1.5,
                 onSelect = function(data)
@@ -104,7 +106,7 @@ StartMarkers = function()
         if positionType and #(coords - vector3(Config.Locations[positionType].x, Config.Locations[positionType].y, Config.Locations[positionType].z)) <= Config.Markers[positionType].Scale.x then
             if not isUIOpen then
                 isUIOpen = true
-                local text, pos = _U('alert_' .. string.lower(positionType))
+                local text, pos = locale('alert_' .. string.lower(positionType))
                 lib.showTextUI(text)
             end
 
@@ -124,21 +126,21 @@ end
 RegisterContextMenus = function()
     lib.registerContext({
         id = 'bryan_mazebank_garage:enterVehicle',
-        title = _U('menu_title'),
+        title = locale('mazebank_garage'),
         options = {{
-            title = _U('menu_enter_garage'),
-            description = _U('menu_enter_vehicle'),
+            title = locale('menu_enter_garage'),
+            description = locale('menu_enter_vehicle'),
             onSelect = function()
                 local doesOwnGarage = lib.callback.await('bryan_mazebank_garage:server:doesOwnGarage', false)
                 local doesOwnVehicle = Config.CheckOwnership and lib.callback.await('bryan_mazebank_garage:server:doesOwnVehicle', false, _GetVehicleProperties(GetVehiclePedIsIn(PlayerPedId(), false)).plate) or true
                 
                 if not doesOwnGarage then
-                    _Notification(_U('notification_enter_garage_not_owned'))
+                    _Notification(locale('notification_enter_garage_not_owned'))
                     return
                 end
 
                 if not doesOwnVehicle then
-                    _Notification(_U('notification_vehicle_not_owned'))
+                    _Notification(locale('notification_vehicle_not_owned'))
                     return
                 end
 
@@ -149,16 +151,16 @@ RegisterContextMenus = function()
 
     lib.registerContext({
         id = 'bryan_mazebank_garage:exitOptions',
-        title = _U('exit'),
+        title = locale('exit'),
         menu = 'bryan_mazebank_garage:managment',
         options = {
             {
-                title = _U('front_door'),
+                title = locale('front_door'),
                 serverEvent = 'bryan_mazebank_garage:server:exitGarage',
                 args = 'front',
             },
             {
-                title =  _U('garage_elevator'),
+                title =  locale('garage_elevator'),
                 serverEvent = 'bryan_mazebank_garage:server:exitGarage',
                 args = 'elevator',
             }
@@ -173,15 +175,15 @@ PressedControl = function(position)
 
         if doesOwnGarage then
             table.insert(options, {
-                title = _U('menu_enter_garage'),
+                title = locale('menu_enter_garage'),
                 onSelect = function()
                     TriggerServerEvent('bryan_mazebank_garage:server:enterGarage')
                 end
             })
         else
             table.insert(options, {
-                title = _U('menu_enter_purchase'),
-                description = _U('price', Config.Price),
+                title = locale('menu_enter_purchase'),
+                description = locale('price', Config.Price),
                 onSelect = function()
                     local isPurchaseSuccessful = lib.callback.await('bryan_mazebank_garage:server:purchaseGarage', false)
 
@@ -194,11 +196,11 @@ PressedControl = function(position)
         end
 
         table.insert(options, {
-            title = _U('menu_enter_visit'),
-            description = _U('menu_enter_visit_desc'),
+            title = locale('menu_enter_visit'),
+            description = locale('menu_enter_visit_desc'),
             onSelect = function()
-                local input = lib.inputDialog(_U('menu_visit_title'), {
-                    { label = _U('id'), type = 'number', min = 1, default = 1 }
+                local input = lib.inputDialog(locale('menu_visit_title'), {
+                    { label = locale('id'), type = 'number', min = 1, default = 1 }
                 })
 
                 if not input then return end
@@ -210,7 +212,7 @@ PressedControl = function(position)
 
         lib.registerContext({
             id = 'bryan_garage_enter',
-            title = _U('menu_title'),
+            title = locale('mazebank_garage'),
             options = options
         })
     
@@ -224,8 +226,8 @@ end
 
 lib.callback.register('bryan_mazebank_garage:client:kickVisitorsOnExitDialog', function()
     local alert = lib.alertDialog({
-        header = _U('warning'),
-        content = _U('exit_with_visitors_warning'),
+        header = locale('warning'),
+        content = locale('exit_with_visitors_warning'),
         centered = true,
         cancel = true,
     })
@@ -259,7 +261,7 @@ DisplayUnlockText = function()
 
         if closeVehicle and not IsPedInAnyVehicle(PlayerPedId(), false) then
             local isLocked = GetVehicleDoorLockStatus(closeVehicle) == 2
-            local text = isLocked and _U('alert_unlock') or _U('alert_lock')
+            local text = isLocked and locale('alert_unlock') or locale('alert_lock')
             sleep = false
 
             if not isUIOpen then
@@ -326,31 +328,31 @@ GarageManagment = function()
     end
 
     local options = isGarageOwner and {
-        { title = _U('visitors'), description = _U('count', visitorCount), menu = 'bryan_mazebank_garage:visitors', disabled = visitorCount == 0 },
-        { title = _U('enter_requests'), description = _U('count', requestCount), menu = 'bryan_mazebank_garage:requests', disabled = requestCount == 0 },
-        { title = _U('manage_vehicles'), description = _U('count', vehicleCount), disabled = vehicleCount == 0, onSelect = StartVehicleManager },
-        { title = _U('exit'), menu = 'bryan_mazebank_garage:exitOptions' },
+        { title = locale('visitors'), description = locale('count', visitorCount), menu = 'bryan_mazebank_garage:visitors', disabled = visitorCount == 0 },
+        { title = locale('enter_requests'), description = locale('count', requestCount), menu = 'bryan_mazebank_garage:requests', disabled = requestCount == 0 },
+        { title = locale('manage_vehicles'), description = locale('count', vehicleCount), disabled = vehicleCount == 0, onSelect = StartVehicleManager },
+        { title = locale('exit'), menu = 'bryan_mazebank_garage:exitOptions' },
     } or {
-        { title = _U('exit'), menu = 'bryan_mazebank_garage:exitOptions' },
+        { title = locale('exit'), menu = 'bryan_mazebank_garage:exitOptions' },
     }
 
     lib.registerContext({
         id = 'bryan_mazebank_garage:managment',
-        title = isGarageOwner and _U('menu_title_id', garageId) or _U('menu_title'),
+        title = isGarageOwner and locale('menu_title_id', garageId) or locale('mazebank_garage'),
         options = options
     })
 
     if isGarageOwner then
         lib.registerContext({
             id = 'bryan_mazebank_garage:visitors',
-            title = _U('visitors'),
+            title = locale('visitors'),
             menu = 'bryan_mazebank_garage:managment',
             options = lib.callback.await('bryan_mazebank_garage:server:getVisitors', false),
         })
 
         lib.registerContext({
             id = 'bryan_mazebank_garage:requests',
-            title = _U('enter_requests'),
+            title = locale('enter_requests'),
             menu = 'bryan_mazebank_garage:managment',
             options = lib.callback.await('bryan_mazebank_garage:server:getRequests', false),
         })
@@ -366,8 +368,8 @@ StartVehicleManager = function()
     local currentSlot, selectedVehicle = GetFirstVehicleSlotInGarage(), nil
     while isInGarage and isInMagment do
         local message = string.format('%s\n%s\n%s\n%s',
-                                selectedVehicle == nil and _U('alert_vehicle_managment_select_vehicle') or _U('alert_vehicle_managment_select_spot'),
-                                _U('alert_vehicle_managment_position'), _U('alert_vehicle_managment_confirm'), _U('alert_vehicle_managment_cancel'))
+                                selectedVehicle == nil and locale('alert_vehicle_managment_select_vehicle') or locale('alert_vehicle_managment_select_spot'),
+                                locale('alert_vehicle_managment_position'), locale('alert_vehicle_managment_confirm'), locale('alert_vehicle_managment_cancel'))
         local markerOptions = selectedVehicle == nil and Config.Markers['SelectVehicle'] or Config.Markers['SelectSlot']
 
         _ShowHelpNotification(message)

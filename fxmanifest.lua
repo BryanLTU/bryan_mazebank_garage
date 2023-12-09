@@ -6,9 +6,8 @@ author 'BryaN'
 lua54 'yes'
 
 shared_scripts {
-    '@es_extended/locale.lua',
     '@ox_lib/init.lua',
-    'locales/*.lua',
+    'locales/*.json',
     'config.lua'
 }
 
