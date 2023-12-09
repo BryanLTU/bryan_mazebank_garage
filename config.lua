@@ -10,7 +10,7 @@ Config.UseTarget = true
 Config.Locations = {
     Enter            = vector4(-71.06, -800.99, 44.93, 181.40),
     EnterVh          = vector4(-84.11, -821.25, 35.63, 351.15),
-    Exit             = vector4(-91.2, -821.31, 222.0, 240.40),
+    Exit             = vector4(-92.0, -821.12, 222.0, 250.0),
     
     VehicleElevator  = vector4(-76.89, -829.58, 221.11, 0.0),
 

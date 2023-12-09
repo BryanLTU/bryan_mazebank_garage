@@ -61,9 +61,10 @@ RegisterTarget = function()
             },
         }
     })
-    exports.ox_target:addSphereZone({
+    exports.ox_target:addBoxZone({
         coords = Config.Locations.Exit,
-        radius = 1.5,
+        size = vector3(1.5, 0.5, 3.0),
+        rotation = 250.0,
         drawSprite = true,
         options = {
             {
