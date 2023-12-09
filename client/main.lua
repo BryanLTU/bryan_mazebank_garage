@@ -362,41 +362,71 @@ GarageManagment = function()
 end
 
 StartVehicleManager = function()
-    local serverId = GetPlayerServerId(PlayerId())
+    local spotsWithVehicle, availableSpots = {labels = {}, args = {}}, {labels = {}, args = {}}
+    local currentSpot, currentVehicle
+
+    for k, v in ipairs(lib.callback.await('bryan_mazebank_garage:server:getGarageVehicles', false)) do
+        if currentSpot == nil then currentSpot = v.slot end
+
+        table.insert(spotsWithVehicle.labels, string.format('#%s', v.slot))
+        table.insert(spotsWithVehicle.args, v.slot)
+    end
+
+    for k, v in ipairs(Config.Locations.VehicleLocations) do
+
+        table.insert(availableSpots.labels, string.format('#%s', k))
+        table.insert(availableSpots.args, k)
+    end
+
+    lib.registerMenu({
+        id = 'bryan_mazebank_garage:selectVehicle',
+        title = locale('alert_vehicle_managment_select_vehicle'),
+        position = 'top-right',
+        onSideScroll = function(selected, scrollIndex, args)
+            currentSpot = args[scrollIndex]
+        end,
+        onClose = function()
+            isInMagment = false
+        end,
+        options = {
+            {label = locale('vehicle'), values = spotsWithVehicle.labels, args = spotsWithVehicle.args}
+        },
+    }, function(selected, scrollIndex, args)
+        currentVehicle = GetVehicleFromSlot(currentSpot)
+        currentSpot = 1
+
+        lib.hideMenu()
+        lib.showMenu('bryan_mazebank_garage:selectSpot')
+    end)
+
+    lib.registerMenu({
+        id = 'bryan_mazebank_garage:selectSpot',
+        title = locale('alert_vehicle_managment_select_spot'),
+        position = 'top-right',
+        onSideScroll = function(selected, scrollIndex, args)
+            currentSpot = args[scrollIndex]
+        end,
+        onClose = function()
+            isInMagment = false
+        end,
+        options = {
+            {label = locale('spot'), values = availableSpots.labels, args = availableSpots.args}
+        }
+    }, function(selected, scrollIndex, args)
+        isInMagment = false
+        lib.hideMenu()
+
+        PlaceVehicleInNewSlot(currentVehicle, currentSpot)
+    end)
+
+    lib.showMenu('bryan_mazebank_garage:selectVehicle')
+
     isInMagment = true
 
-    local currentSlot, selectedVehicle = GetFirstVehicleSlotInGarage(), nil
     while isInGarage and isInMagment do
-        local message = string.format('%s\n%s\n%s\n%s',
-                                selectedVehicle == nil and locale('alert_vehicle_managment_select_vehicle') or locale('alert_vehicle_managment_select_spot'),
-                                locale('alert_vehicle_managment_position'), locale('alert_vehicle_managment_confirm'), locale('alert_vehicle_managment_cancel'))
-        local markerOptions = selectedVehicle == nil and Config.Markers['SelectVehicle'] or Config.Markers['SelectSlot']
+        local markerOptions = currentVehicle == nil and Config.Markers['SelectVehicle'] or Config.Markers['SelectSlot']
 
-        _ShowHelpNotification(message)
-
-        DrawMarker(0, Config.Locations.VehicleLocations[currentSlot].x, Config.Locations.VehicleLocations[currentSlot].y, Config.Locations.VehicleLocations[currentSlot].z + 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, markerOptions.Scale.x, markerOptions.Scale.y, markerOptions.Scale.z, markerOptions.Colour.r, markerOptions.Colour.g, markerOptions.Colour.b, 150, false, false, 2, markerOptions.Rotate, nil, nil, false)
-
-        if IsControlJustReleased(1, 174) then
-            currentSlot = GetPreviousSlotInGarage(currentSlot, selectedVehicle == nil)
-        end
-
-        if IsControlJustReleased(1, 175) then
-            currentSlot = GetNextSlotInGarage(currentSlot, selectedVehicle == nil)
-        end
-
-        if IsControlJustReleased(1, 176) then
-            if selectedVehicle == nil then
-                selectedVehicle = GetVehicleFromSlot(currentSlot)
-                currentSlot = 1
-            else
-                isInMagment = false
-                PlaceVehicleInNewSlot(selectedVehicle, currentSlot)
-            end
-        end
-        
-        if IsControlJustReleased(1, 177) then
-            isInMagment = false
-        end
+        DrawMarker(0, Config.Locations.VehicleLocations[currentSpot].x, Config.Locations.VehicleLocations[currentSpot].y, Config.Locations.VehicleLocations[currentSpot].z + 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, markerOptions.Scale.x, markerOptions.Scale.y, markerOptions.Scale.z, markerOptions.Colour.r, markerOptions.Colour.g, markerOptions.Colour.b, 150, false, false, 2, markerOptions.Rotate, nil, nil, false)
 
         Citizen.Wait(1)
     end
