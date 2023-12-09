@@ -119,18 +119,6 @@ RegisterNetEvent('bryan_mazebank_garage:server:requestToEnter', function(id)
     end
 end)
 
-RegisterNewVehicle = function(source, plate, props)
-    local freeSpot = GetFreeSpotInGarage(source)
-
-    if freeSpot then
-        MySQL.insert.await('INSERT INTO bryan_garage_vehicles (identifier, plate, properties, slot) VALUES (?, ?, ?, ?)', {
-            _GetPlayerIdentifier(source), plate, json.encode(props), freeSpot
-        })
-        
-        _UpdateOwnedVehicleTable(source, plate, true)
-    end
-end
-
 RegisterNetEvent('bryan_mazebank_garage:server:enterGarage', function(visitId)
     local _source = source
 
@@ -252,7 +240,8 @@ EnterVehicle = function(source, vehicle, garage)
     SpawnElevator(source, vehicle, passangers, garage.id)
 
     local props = lib.callback.await('bryan_mazebank_garage:client:getVehicleProps', source, NetworkGetNetworkIdFromEntity(vehicle))
-    RegisterNewVehicle(source, props.plate, props)
+    garage.AddVehicle(props.plate, props, GetFreeSpotInGarage(source))
+    _UpdateOwnedVehicleTable(source, props.plate, true)
 
     DeleteEntity(vehicle)
 

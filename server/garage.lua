@@ -106,6 +106,18 @@ CreateGarageInstance = function(id, owner)
         return false
     end
 
+    self.AddVehicle = function(plate, props, spot)
+        MySQL.insert.await('INSERT INTO bryan_garage_vehicles (identifier, plate, properties, slot) VALUES (?, ?, ?, ?)', {
+            self.owner, plate, json.encode(props), spot
+        })
+    end
+
+    self.RemoveVehicle = function(plate)
+        MySQL.update.await('DELETE FROM bryan_garage_vehicles WHERE identifier = ? AND plate = ?', {
+            self.owner, plate
+        })
+    end
+
     self.SpawnVehicles = function()
         local result = MySQL.query.await('SELECT plate, properties, slot FROM bryan_garage_vehicles WHERE identifier = ?', { self.owner })
 
