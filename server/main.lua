@@ -172,7 +172,7 @@ EnterGarage = function(source, visitId)
     end
 
     if not garage then
-        _Notification(source, _('notification_fault'))
+        _Notification(source, locale('notification_fault'))
         return
     end
 
@@ -288,7 +288,7 @@ ExitGarage = function(source, door)
             SetPlayerRoutingBucket(source, 0)
             SetEntityCoords(GetPlayerPed(source), exitLocation.x, exitLocation.y, exitLocation.z, 0.0, 0.0, 0.0, false)
         else
-            _Notification(source, _('notification_fault'))
+            _Notification(source, locale('notification_fault'))
         end
 
         return
