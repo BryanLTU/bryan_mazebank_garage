@@ -75,3 +75,19 @@ _UpdateOwnedVehicleTable = function(plate, stored)
         end
     end
 end
+
+_IsVehiclePlayerOwned = function(source, plate)
+    if Config.Framework == 'esx' then
+        local result = MySQL.query.await('SELECT identifier FROM owned_vehicles WHERE identifier = ?', {
+            _GetPlayerIdentifier(source)
+        })
+
+        return #result > 0
+    elseif Config.Framework == 'qbcore' then
+        local result = MySQL.query.await('SELECT citizenid FROM player_vehicles WHERE citizenid = ?', {
+            _GetPlayerIdentifier(source)
+        })
+
+        return #result > 0
+    end
+end

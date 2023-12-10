@@ -212,6 +212,11 @@ EnterVehicle = function(source, vehicle, garage)
         return false
     end
 
+    if Config.CheckOwnership and not _IsVehiclePlayerOwned(source, GetVehicleNumberPlateText(vehicle)) then
+        _Notification(source, locale('notification_vehicle_not_owned'))
+        return false
+    end
+
     local passangers = GetPlayersInVehicle(vehicle)
 
     for k, v in ipairs(passangers) do TriggerClientEvent('bryan_mazebank_garage:client:fadeout', v.id, false, 100) end
