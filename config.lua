@@ -1,13 +1,12 @@
 Config = {}
 
-Config.Locale = 'en'
+Config.Locale               = 'en'
 
-Config.Framework = 'esx' -- esx / qbcore
+Config.Framework            = 'esx' -- esx / qbcore
 
-Config.Price     = 15000
-Config.MaxFloors = 3
-Config.CheckOwnership = false
-Config.UseTarget = true
+Config.Price                = 15000 -- Price to buy the Garage
+Config.CheckOwnership       = false -- Check if the vehicle that is being stored is owned by the player
+Config.UseTarget            = true  -- Use target instead of markers
 
 Config.Locations = {
     Enter            = vector4(-71.06, -800.99, 44.93, 181.40),
