@@ -16,4 +16,4 @@ A script to display your Vehicles proudly. Show off your vehicles and their modi
 | **Garage** <br>This is a place where your Vehicles will be displayed | ![2](https://i.imgur.com/tBvGoEC.jpg) |
 | **Elevator** <br>The elevator object is moving and rotating making a cool animation when you drive into your garage | ![1](https://i.imgur.com/m5l6jS7.jpg) |
 | **Menu** <br>Available options to manage your garage | ![3](https://i.imgur.com/3XDp61f.jpg) |
-| **Video** | TBD |
+| **Video** | [Streamable Video](https://streamable.com/6hkxz2) |
