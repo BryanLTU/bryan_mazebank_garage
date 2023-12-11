@@ -38,7 +38,7 @@ _GetPlayerId = function(identifier)
     if Config.Framework == 'esx' then
         return FrameworkObj.GetPlayerFromIdentifier(identifier).source
     elseif Config.Framework == 'qbcore' then
-        return FrameworkObj.Player.GetPlayerByLicense(identifier).source
+        return FrameworkObj.Functions.GetSource(identifier)
     end
 end
 
