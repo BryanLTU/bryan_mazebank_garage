@@ -7,9 +7,7 @@ lib.callback.register('bryan_mazebank_garage:server:doesOwnGarage', function(sou
 end)
 
 lib.callback.register('bryan_mazebank_garage:server:doesOwnVehicle', function(source, plate)
-    local result = MySQL.scalar.await('SELECT owner FROM owned_vehicles WHERE plate = ? AND owner = ?', { plate, _GetPlayerIdentifier(source) })
-
-    return result ~= nil
+    return _IsVehiclePlayerOwned(source, plate)
 end)
 
 lib.callback.register('bryan_mazebank_garage:server:purchaseGarage', function(source)
