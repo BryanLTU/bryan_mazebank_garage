@@ -6,6 +6,7 @@ Config.Framework            = 'esx' -- esx / qbcore
 
 Config.Price                = 15000 -- Price to buy the Garage
 Config.CheckOwnership       = false -- Check if the vehicle that is being stored is owned by the player
+Config.UpdateGarageDatabase = false -- Update's garage column in Vehicle's table, so that the vehicle does not appear in other garages
 Config.UseTarget            = true  -- Use target instead of markers
 
 Config.Locations = {
