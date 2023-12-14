@@ -63,9 +63,9 @@ _RemovePlayerMoney = function(source, amount)
 end
 
 _UpdateOwnedVehicleTable = function(plate, stored)
-    if Config.CheckOwnership then
+    if Config.UpdateGarageDatabase then
         if Config.Framework == 'esx' then
-            MySQL.update.await('UPDATE owned_vehicles SET stored = ?, garage_name = ? WHERE AND plate = ?', {
+            MySQL.update.await('UPDATE owned_vehicles SET stored = ?, garage_name = ? WHERE plate = ?', {
                 stored, locale(mazebank_garage), plate
             })
         elseif Config.Framework == 'qbcore' then
@@ -78,14 +78,16 @@ end
 
 _IsVehiclePlayerOwned = function(source, plate)
     if Config.Framework == 'esx' then
-        local result = MySQL.query.await('SELECT identifier FROM owned_vehicles WHERE identifier = ?', {
-            _GetPlayerIdentifier(source)
+        local result = MySQL.query.await('SELECT owner FROM owned_vehicles WHERE owner = ? AND plate = ?', {
+            _GetPlayerIdentifier(source),
+            plate
         })
 
         return #result > 0
     elseif Config.Framework == 'qbcore' then
-        local result = MySQL.query.await('SELECT citizenid FROM player_vehicles WHERE citizenid = ?', {
-            _GetPlayerIdentifier(source)
+        local result = MySQL.query.await('SELECT license FROM player_vehicles WHERE license = ? AND plate = ?', {
+            _GetPlayerIdentifier(source),
+            plate
         })
 
         return #result > 0
