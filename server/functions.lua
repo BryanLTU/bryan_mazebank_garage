@@ -78,7 +78,7 @@ end
 
 _IsVehiclePlayerOwned = function(source, plate)
     if Config.Framework == 'esx' then
-        local result = MySQL.query.await('SELECT identifier FROM owned_vehicles WHERE identifier = ?', {
+        local result = MySQL.query.await('SELECT owner FROM owned_vehicles WHERE owner = ?', {
             _GetPlayerIdentifier(source)
         })
 
