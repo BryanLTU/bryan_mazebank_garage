@@ -66,11 +66,11 @@ _UpdateOwnedVehicleTable = function(plate, stored)
     if Config.UpdateGarageDatabase then
         if Config.Framework == 'esx' then
             MySQL.update.await('UPDATE owned_vehicles SET stored = ?, garage_name = ? WHERE plate = ?', {
-                stored, locale(mazebank_garage), plate
+                stored, locale('mazebank_garage'), plate
             })
         elseif Config.Framework == 'qbcore' then
             MySQL.update.await('UPDATE player_vehicles SET state = ?, garage = ? WHERE plate = ?', {
-                stored, locale(mazebank_garage), plate
+                stored, locale('mazebank_garage'), plate
             })
         end
     end
